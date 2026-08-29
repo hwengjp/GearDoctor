@@ -50,7 +50,12 @@ class AppStore extends ChangeNotifier {
         await ensureMissingDefaultParts(
           _repo!,
           now: now,
-          startDate: existingSettings.lastSyncFrom,
+          startDate: oldestRideOn(
+                rides: await _repo!.loadRides(),
+                gearId: existingSettings.selectedGearId,
+              ) ??
+              now,
+          gearId: existingSettings.selectedGearId,
         );
       }
       await refresh();
@@ -63,12 +68,13 @@ class AppStore extends ChangeNotifier {
 
   Future<void> refresh() async {
     final repo = _requireRepo();
-    parts = await repo.loadParts();
-    replacements = await repo.loadReplacements();
-    groups = await repo.loadGroups();
     gears = await repo.loadGears();
     rides = await repo.loadRides();
     settings = await repo.loadSettings();
+    final gearId = settings.selectedGearId;
+    parts = gearId == null ? [] : await repo.loadParts(gearId: gearId);
+    groups = gearId == null ? [] : await repo.loadGroups(gearId: gearId);
+    replacements = await repo.loadReplacements();
     loading = false;
     notifyListeners();
   }
@@ -77,6 +83,13 @@ class AppStore extends ChangeNotifier {
         rides: rides,
         fromInclusive: settings.lastSyncFrom,
       );
+
+  DateTime? get oldestSelectedRideOn => oldestRideOn(
+        rides: rides,
+        gearId: settings.selectedGearId,
+      );
+
+  DateTime get partOriginOn => oldestSelectedRideOn ?? now;
 
   Gear? get selectedGear {
     final id = settings.selectedGearId;
@@ -91,8 +104,16 @@ class AppStore extends ChangeNotifier {
     return null;
   }
 
+  bool get canManageRecords => selectedGear != null;
+
   List<Replacement> replacementsFor(String partId) {
-    return replacements.where((item) => item.partId == partId).toList();
+    final gearId = settings.selectedGearId;
+    if (gearId == null) {
+      return [];
+    }
+    return replacements
+        .where((item) => item.partId == partId && item.gearId == gearId)
+        .toList();
   }
 
   double usedOf(Part part) {
@@ -111,7 +132,7 @@ class AppStore extends ChangeNotifier {
       replacements: replacementsFor(part.id),
       rides: rides,
       gearId: settings.selectedGearId,
-      trackingFrom: settings.lastSyncFrom,
+      trackingFrom: oldestSelectedRideOn,
     );
   }
 
@@ -122,7 +143,7 @@ class AppStore extends ChangeNotifier {
   String limitModeLabelOf(Part part) {
     if (part.limitMode == LimitMode.previousCycle &&
         previousCycleOf(part) == null) {
-      return '前回周期（推奨）';
+      return '自動（推奨）';
     }
     return part.limitMode.label;
   }
@@ -132,7 +153,7 @@ class AppStore extends ChangeNotifier {
       replacements: replacementsFor(part.id),
       rides: rides,
       gearId: settings.selectedGearId,
-      trackingFrom: settings.lastSyncFrom,
+      trackingFrom: oldestSelectedRideOn,
     );
   }
 
@@ -140,7 +161,7 @@ class AppStore extends ChangeNotifier {
     return rideKmThrough(
       rides: rides,
       gearId: settings.selectedGearId,
-      fromInclusive: settings.lastSyncFrom,
+      fromInclusive: oldestSelectedRideOn,
       throughInclusive: throughInclusive,
     );
   }
@@ -173,14 +194,24 @@ class AppStore extends ChangeNotifier {
   String titleOf(Part part) => displayTitle(part: part, groups: groups);
 
   Future<void> savePart(Part part, {required bool isNew}) async {
+    if (isNew) {
+      _ensureNotDemoForPartsAndCsv();
+    }
+    final gearId = part.gearId.isNotEmpty
+        ? part.gearId
+        : settings.selectedGearId;
+    if (gearId == null) {
+      throw StateError('ギアを選んでから部品を追加してください。');
+    }
     final repo = _requireRepo();
-    await repo.upsertPart(part);
+    await repo.upsertPart(part.copyWith(gearId: gearId));
     if (isNew) {
       await repo.upsertReplacement(
         Replacement(
           id: newId('r'),
           partId: part.id,
-          replacedOn: dateOnly(settings.lastSyncFrom ?? now),
+          gearId: gearId,
+          replacedOn: partOriginOn,
           memo: '',
         ),
       );
@@ -193,10 +224,15 @@ class AppStore extends ChangeNotifier {
     required DateTime replacedOn,
     required String memo,
   }) async {
+    final gearId = settings.selectedGearId;
+    if (gearId == null) {
+      throw StateError('ギアを選んでから交換を記録してください。');
+    }
     await _requireRepo().upsertReplacement(
       Replacement(
         id: newId('r'),
         partId: partId,
+        gearId: gearId,
         replacedOn: dateOnly(replacedOn),
         memo: memo.trim(),
       ),
@@ -209,6 +245,7 @@ class AppStore extends ChangeNotifier {
       Replacement(
         id: replacement.id,
         partId: replacement.partId,
+        gearId: replacement.gearId,
         replacedOn: dateOnly(replacement.replacedOn),
         memo: replacement.memo.trim(),
       ),
@@ -230,6 +267,11 @@ class AppStore extends ChangeNotifier {
         skippedDuplicates: plan.duplicates.length,
       );
     }
+    _ensureNotDemoForPartsAndCsv();
+    final gearId = settings.selectedGearId;
+    if (gearId == null) {
+      throw StateError('ギアを選んでから CSV を取り込んでください。');
+    }
     final repo = _requireRepo();
     final partIds = <String>{};
     for (final row in plan.toAdd) {
@@ -239,7 +281,7 @@ class AppStore extends ChangeNotifier {
       }
     }
     for (final partId in partIds) {
-      await repo.deleteReplacementsForPart(partId);
+      await repo.deleteReplacementsForPartGear(partId, gearId);
     }
     for (final row in plan.toAdd) {
       final part = partForCsvRow(row, parts);
@@ -250,6 +292,7 @@ class AppStore extends ChangeNotifier {
         Replacement(
           id: newId('r'),
           partId: part.id,
+          gearId: gearId,
           replacedOn: dateOnly(row.replacedOn),
           memo: row.memo,
         ),
@@ -267,9 +310,14 @@ class AppStore extends ChangeNotifier {
     required String rearPartId,
     required String displayName,
   }) async {
+    final gearId = settings.selectedGearId;
+    if (gearId == null) {
+      throw StateError('ギアを選んでから表示をまとめてください。');
+    }
     await _requireRepo().insertGroup(
       DisplayGroup(
         id: newId('grp'),
+        gearId: gearId,
         displayName: displayName.trim(),
         frontPartId: frontPartId,
         rearPartId: rearPartId,
@@ -286,7 +334,7 @@ class AppStore extends ChangeNotifier {
   Future<void> selectGear(String gearId) async {
     settings = settings.copyWith(selectedGearId: gearId);
     await _requireRepo().saveSettings(settings);
-    notifyListeners();
+    await refresh();
   }
 
   Future<void> saveStravaCredentials({
@@ -352,7 +400,7 @@ class AppStore extends ChangeNotifier {
   }) async {
     final start = settings.lastSyncFrom;
     if (start == null) {
-      throw StravaAuthException('先に開始日を指定してください。');
+      throw StravaAuthException('先にStrava開始日を指定してください。');
     }
     if (!settings.stravaConnected) {
       throw StravaAuthException('先に Strava 連携の画面から連携してください。');
@@ -452,6 +500,11 @@ class AppStore extends ChangeNotifier {
     final repo = _requireRepo();
     for (final bike in bikes) {
       await repo.upsertGear(bike);
+      await seedDefaultCatalogForGear(
+        repo,
+        bike.id,
+        startDate: oldestRideOn(rides: rides, gearId: bike.id) ?? now,
+      );
     }
     if (bikes.isEmpty) {
       return;
@@ -497,5 +550,29 @@ class AppStore extends ChangeNotifier {
       throw StateError('データベースがまだ開いていません');
     }
     return repo;
+  }
+
+  void _ensureNotDemoForPartsAndCsv() {
+    if (usingDemoRides) {
+      throw const DemoRequiresSyncException();
+    }
+  }
+
+  @visibleForTesting
+  Future<void> convertDemoRidesForTest() async {
+    final repo = _requireRepo();
+    final current = List<Ride>.from(rides);
+    await repo.deleteAllRides();
+    for (final ride in current) {
+      await repo.upsertRide(
+        Ride(
+          id: isDemoRideId(ride.id) ? 'synced_${ride.id}' : ride.id,
+          gearId: ride.gearId,
+          startedOn: ride.startedOn,
+          distanceKm: ride.distanceKm,
+        ),
+      );
+    }
+    await refresh();
   }
 }

@@ -9,6 +9,7 @@ import '../widgets/widgets.dart';
 import 'part_detail_screen.dart';
 import 'settings_screen.dart';
 import 'sync_screen.dart';
+import 'gear_screen.dart';
 
 String _homeSyncLabel(AppStore store) {
   final from = store.settings.lastSyncFrom;
@@ -37,11 +38,11 @@ class HomeScreen extends StatelessWidget {
       builder: (context, _) {
         final alerts = store.alerts;
         final gearName = store.selectedGear == null
-            ? '未選択'
-            : demoGearLabel(
+            ? 'ギア: 未選択'
+            : 'ギア: ${demoGearLabel(
                 store.selectedGear!.name,
                 demo: isDemoGearId(store.selectedGear!.id),
-              );
+              )}';
         final lastSync = markDemo(
           _homeSyncLabel(store),
           demo: store.usingDemoRides,
@@ -73,25 +74,29 @@ class HomeScreen extends StatelessWidget {
                 ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: InkWell(
-                  onTap: () => _openSettings(context),
-                  child: Row(
-                    children: [
-                      Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => _openGear(context),
                         child: Text(
-                          'ギア: $gearName',
-                          style: Theme.of(context).textTheme.bodySmall,
+                          gearName,
+                          style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ),
-                      Flexible(
+                    ),
+                    Flexible(
+                      child: InkWell(
+                        onTap: () => _openSync(context),
                         child: Text(
                           '最終同期 $lastSync',
                           textAlign: TextAlign.end,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
               if (alerts.isNotEmpty)
@@ -143,6 +148,18 @@ class HomeScreen extends StatelessWidget {
   void _openSettings(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => SettingsScreen(store: store)),
+    );
+  }
+
+  void _openGear(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => GearScreen(store: store)),
+    );
+  }
+
+  void _openSync(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => SyncScreen(store: store)),
     );
   }
 
@@ -260,41 +277,46 @@ class _PartCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           if (card.isGroup)
-            Row(
-              children: [
-                Expanded(
-                  child: SideUsage(
-                    part: card.rear!,
-                    used: store.usedOf(card.rear!),
-                    limit: store.limitOf(card.rear!),
-                    positionLabel: 'R',
-                    demoDistance: store.usingDemoRides,
-                    onTap: () => onOpen(card.rear!.id),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: SideUsage(
+                      part: card.rear!,
+                      used: store.usedOf(card.rear!),
+                      limit: store.limitOf(card.rear!),
+                      positionLabel: 'R',
+                      modeLabel: store.limitModeLabelOf(card.rear!),
+                      demoDistance: store.usingDemoRides,
+                      onTap: () => onOpen(card.rear!.id),
+                    ),
                   ),
-                ),
-                Container(
-                  width: 1,
-                  height: 64,
-                  margin: const EdgeInsets.symmetric(horizontal: 10),
-                  color: scheme.outlineVariant,
-                ),
-                Expanded(
-                  child: SideUsage(
-                    part: card.front!,
-                    used: store.usedOf(card.front!),
-                    limit: store.limitOf(card.front!),
-                    positionLabel: 'F',
-                    demoDistance: store.usingDemoRides,
-                    onTap: () => onOpen(card.front!.id),
+                  Container(
+                    width: 1,
+                    margin: const EdgeInsets.symmetric(horizontal: 10),
+                    color: scheme.outlineVariant,
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: SideUsage(
+                      part: card.front!,
+                      used: store.usedOf(card.front!),
+                      limit: store.limitOf(card.front!),
+                      positionLabel: 'F',
+                      modeLabel: store.limitModeLabelOf(card.front!),
+                      demoDistance: store.usingDemoRides,
+                      onTap: () => onOpen(card.front!.id),
+                    ),
+                  ),
+                ],
+              ),
             )
           else
             SideUsage(
               part: card.part!,
               used: store.usedOf(card.part!),
               limit: store.limitOf(card.part!),
+              modeLabel: store.limitModeLabelOf(card.part!),
               demoDistance: store.usingDemoRides,
               onTap: () => onOpen(card.part!.id),
             ),

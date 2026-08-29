@@ -46,7 +46,7 @@ class _SyncScreenState extends State<SyncScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                '何日までは、開始日以降で入っているいちばん新しい走行の日です。',
+                '何日までは、Strava開始日以降で入っているいちばん新しい走行の日です。',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 12),
@@ -67,9 +67,14 @@ class _SyncScreenState extends State<SyncScreen> {
                 child: const Text('前回から 1 年'),
               ),
               const SizedBox(height: 32),
+              Text(
+                'Strava開始日を変えると、取り込んだ走行は消えて初期化されます。新しい日から取り直します。',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
               OutlinedButton(
                 onPressed: _busy ? null : _changeStartDate,
-                child: Text(hasStart ? '開始日を変更' : '開始日を指定'),
+                child: Text(hasStart ? 'Strava開始日を変更' : 'Strava開始日を指定'),
               ),
               if (_message != null) ...[
                 const SizedBox(height: 16),
@@ -84,7 +89,7 @@ class _SyncScreenState extends State<SyncScreen> {
 
   Future<void> _syncForward({required int months}) async {
     if (widget.store.settings.lastSyncFrom == null) {
-      setState(() => _message = '先に開始日を指定してください。');
+      setState(() => _message = '先にStrava開始日を指定してください。');
       return;
     }
     if (!widget.store.settings.stravaConnected) {
@@ -122,16 +127,12 @@ class _SyncScreenState extends State<SyncScreen> {
   }
 
   Future<void> _changeStartDate() async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate:
           widget.store.settings.lastSyncFrom ?? widget.store.now,
-      firstDate: DateTime(2010),
-      lastDate: DateTime(
-        widget.store.now.year,
-        widget.store.now.month,
-        widget.store.now.day,
-      ),
+      lastDate: widget.store.now,
+      currentDate: widget.store.now,
     );
     if (picked == null || !mounted) {
       return;
@@ -139,19 +140,19 @@ class _SyncScreenState extends State<SyncScreen> {
     final next = DateTime.utc(picked.year, picked.month, picked.day);
     final current = widget.store.settings.lastSyncFrom;
     if (current != null && dateOnly(current) == next) {
-      setState(() => _message = '開始日は同じです。');
+      setState(() => _message = 'Strava開始日は同じです。');
       return;
     }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('開始日を変えますか？'),
+          title: const Text('Strava開始日を変えますか？'),
           content: Text(
-            '開始日を ${formatDate(next)} にします。\n\n'
-            '開始日から、入っているいちばん新しい走行まで、抜けなく取れている必要があります。'
-            '途中で開始日だけ変えると、取得に抜けが出ることがあります。\n\n'
-            'いま入っている走行データをすべて消してから、新しい開始日から取り直します。',
+            'Strava開始日を ${formatDate(next)} にします。\n\n'
+            'Strava開始日から、入っているいちばん新しい走行まで、抜けなく取れている必要があります。'
+            '途中でStrava開始日だけ変えると、取得に抜けが出ることがあります。\n\n'
+            'いま入っている走行データをすべて消してから、新しいStrava開始日から取り直します。',
           ),
           actions: [
             TextButton(
@@ -179,7 +180,7 @@ class _SyncScreenState extends State<SyncScreen> {
     }
     setState(() {
       _busy = false;
-      _message = '開始日を ${formatDate(next)} にしました。走行データは消してあります。ここから取り直してください。';
+      _message = 'Strava開始日を ${formatDate(next)} にしました。走行データは消してあります。ここから取り直してください。';
     });
   }
 }
@@ -203,7 +204,7 @@ class _RangeSummary extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           markDemo(
-            '開始日  ${from == null ? '—' : formatDate(from!)}',
+            'Strava開始日  ${from == null ? '—' : formatDate(from!)}',
             demo: demo,
           ),
           style: Theme.of(context).textTheme.titleMedium,

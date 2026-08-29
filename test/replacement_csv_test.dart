@@ -7,6 +7,7 @@ import 'package:gear_doctor/models/models.dart';
 void main() {
   const chain = Part(
     id: 'p_chain',
+    gearId: 'g',
     registeredName: 'チェーン',
     cycle: CycleKind.distance,
     limitMode: LimitMode.recommended,
@@ -91,6 +92,7 @@ void main() {
   test('export quotes memos with commas and round-trips', () {
     const front = Part(
       id: 'p_front_tire',
+      gearId: 'g',
       registeredName: '前タイヤ',
       cycle: CycleKind.distance,
       limitMode: LimitMode.recommended,
@@ -105,12 +107,14 @@ void main() {
         Replacement(
           id: 'r2',
           partId: 'p_chain',
+          gearId: 'g',
           replacedOn: parseDate('2025-11-12'),
           memo: '',
         ),
         Replacement(
           id: 'r1',
           partId: 'p_front_tire',
+          gearId: 'g',
           replacedOn: parseDate('2025-03-01'),
           memo: 'GP5000,黒',
         ),

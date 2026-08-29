@@ -40,7 +40,7 @@ class SyncWindow {
   final DateTime toInclusive;
 }
 
-/// 次に取る範囲。開始日（または前回取り終えた日）から [months] か月、今日まで。
+/// 次に取る範囲。Strava開始日（または前回取り終えた日）から [months] か月、今日まで。
 SyncWindow nextSyncWindow({
   required DateTime startDate,
   required DateTime? fetchedThrough,
@@ -59,7 +59,7 @@ SyncWindow nextSyncWindow({
   return SyncWindow(fromInclusive: from, toInclusive: to);
 }
 
-/// Strava の after。開始日 0:00 UTC の走行を含めるため 1 秒引く。
+/// Strava の after。Strava開始日 0:00 UTC の走行を含めるため 1 秒引く。
 int stravaAfterEpoch(DateTime fromInclusive) {
   return dateOnly(fromInclusive).millisecondsSinceEpoch ~/ 1000 - 1;
 }

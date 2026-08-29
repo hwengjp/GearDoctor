@@ -107,18 +107,21 @@ void main() {
         Replacement(
           id: 'a',
           partId: 'p',
+          gearId: 'g',
           replacedOn: parseDate('2024-12-01'),
           memo: '',
         ),
         Replacement(
           id: 'b',
           partId: 'p',
+          gearId: 'g',
           replacedOn: parseDate('2025-03-15'),
           memo: '',
         ),
         Replacement(
           id: 'c',
           partId: 'p',
+          gearId: 'g',
           replacedOn: parseDate('2025-07-01'),
           memo: '',
         ),
@@ -158,9 +161,36 @@ void main() {
     expect(newestRideOn(rides: rides, fromInclusive: parseDate('2026-08-01')), isNull);
   });
 
+  test('oldestRideOn is the first ride of the selected gear', () {
+    final rides = [
+      Ride(
+        id: '1',
+        gearId: 'g1',
+        startedOn: parseDate('2025-06-01'),
+        distanceKm: 10,
+      ),
+      Ride(
+        id: '2',
+        gearId: 'g1',
+        startedOn: parseDate('2024-04-15'),
+        distanceKm: 20,
+      ),
+      Ride(
+        id: '3',
+        gearId: 'g2',
+        startedOn: parseDate('2020-01-01'),
+        distanceKm: 5,
+      ),
+    ];
+    expect(formatDate(oldestRideOn(rides: rides, gearId: 'g1')!), '2024-04-15');
+    expect(oldestRideOn(rides: rides, gearId: 'g3'), isNull);
+    expect(oldestRideOn(rides: rides, gearId: null), isNull);
+  });
+
   test('display cards keep groups as one row and ungrouped as registered names', () {
     const front = Part(
       id: 'f',
+      gearId: 'g',
       registeredName: '前タイヤ',
       cycle: CycleKind.distance,
       limitMode: LimitMode.recommended,
@@ -171,6 +201,7 @@ void main() {
     );
     const rear = Part(
       id: 'r',
+      gearId: 'g',
       registeredName: '後タイヤ',
       cycle: CycleKind.distance,
       limitMode: LimitMode.recommended,
@@ -181,6 +212,7 @@ void main() {
     );
     const chain = Part(
       id: 'c',
+      gearId: 'g',
       registeredName: 'チェーン',
       cycle: CycleKind.distance,
       limitMode: LimitMode.recommended,
@@ -191,6 +223,7 @@ void main() {
     );
     const group = DisplayGroup(
       id: 'g',
+      gearId: 'g',
       displayName: 'タイヤ',
       frontPartId: 'f',
       rearPartId: 'r',
@@ -223,6 +256,7 @@ void main() {
   test('previous cycle is the last completed interval, or start date if only one replacement', () {
     const part = Part(
       id: 'p',
+      gearId: 'g',
       registeredName: 'チェーン',
       cycle: CycleKind.distance,
       limitMode: LimitMode.previousCycle,
@@ -234,12 +268,14 @@ void main() {
     final first = Replacement(
       id: 'first',
       partId: 'p',
+      gearId: 'g',
       replacedOn: parseDate('2026-06-12'),
       memo: '',
     );
     final second = Replacement(
       id: 'second',
       partId: 'p',
+      gearId: 'g',
       replacedOn: parseDate('2027-01-01'),
       memo: '',
     );
@@ -247,6 +283,7 @@ void main() {
       Replacement(
         id: 'older',
         partId: 'p',
+        gearId: 'g',
         replacedOn: parseDate('2025-04-07'),
         memo: '',
       ),
@@ -328,6 +365,20 @@ void main() {
 
   test('demo marks attach to fake gear, sync, and distance', () {
     expect(formatUsed(4800, CycleKind.distance, demo: true), '4,800km（デモ）');
+    expect(
+      formatElapsedAndDue(
+        4800,
+        6000,
+        CycleKind.distance,
+        modeLabel: '推奨',
+        demo: true,
+      ),
+      '4,800 / 6,000 km 推奨（デモ）',
+    );
+    expect(
+      formatElapsedAndDue(7, 12, CycleKind.months, modeLabel: '自動'),
+      '7 / 12 か月 自動',
+    );
     expect(formatTodayUsed(3000, CycleKind.distance), '3,000km（今日）');
     expect(formatUsed(7, CycleKind.months, demo: true), '7か月');
     expect(markDemo('最終同期 2025-07-17〜2026-07-15', demo: true),

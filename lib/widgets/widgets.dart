@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/seed.dart';
 import '../domain/dates.dart';
 import '../domain/usage.dart';
 import '../models/models.dart';
@@ -22,6 +23,25 @@ String formatUsed(num value, CycleKind cycle, {bool demo = false}) {
     return '$text（デモ）';
   }
   return text;
+}
+
+String formatElapsedAndDue(
+  num used,
+  int limit,
+  CycleKind cycle, {
+  String? modeLabel,
+  bool demo = false,
+}) {
+  final buffer = StringBuffer(
+    '${formatAmount(used)} / ${formatAmount(limit)} ${cycle.unitLabel}',
+  );
+  if (modeLabel != null && modeLabel.isNotEmpty) {
+    buffer.write(' $modeLabel');
+  }
+  if (demo && cycle == CycleKind.distance) {
+    buffer.write('（デモ）');
+  }
+  return buffer.toString();
 }
 
 String formatTodayUsed(num value, CycleKind cycle, {bool demo = false}) {
@@ -50,6 +70,59 @@ String demoGearLabel(
     return '$name（選択中）';
   }
   return name;
+}
+
+Future<void> showDemoRequiresSyncDialog(BuildContext context) {
+  return showDialog<void>(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text(DemoRequiresSyncException.title),
+        content: const Text(DemoRequiresSyncException.message),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+/// Material の年グリッドは、年の数が 18 未満だと先頭（2010 など）から表示される。
+DateTime appDatePickerFirstDate(DateTime lastDate) {
+  const floorYear = 2000;
+  const minYears = 18;
+  var firstYear = floorYear;
+  if (lastDate.year - firstYear + 1 < minYears) {
+    firstYear = lastDate.year - minYears + 1;
+  }
+  return DateTime(firstYear);
+}
+
+Future<DateTime?> showAppDatePicker({
+  required BuildContext context,
+  required DateTime initialDate,
+  required DateTime lastDate,
+  DateTime? currentDate,
+}) {
+  final last = DateTime(lastDate.year, lastDate.month, lastDate.day);
+  final first = appDatePickerFirstDate(last);
+  var initial = DateTime(initialDate.year, initialDate.month, initialDate.day);
+  if (initial.isAfter(last)) {
+    initial = last;
+  }
+  if (initial.isBefore(first)) {
+    initial = first;
+  }
+  return showDatePicker(
+    context: context,
+    initialDate: initial,
+    firstDate: first,
+    lastDate: last,
+    currentDate: currentDate ?? last,
+  );
 }
 
 Color statusColor(WearStatus status, ColorScheme scheme) {
@@ -188,6 +261,7 @@ class SideUsage extends StatelessWidget {
     required this.used,
     required this.limit,
     this.positionLabel,
+    this.modeLabel,
     this.demoDistance = false,
     required this.onTap,
   });
@@ -196,6 +270,7 @@ class SideUsage extends StatelessWidget {
   final double used;
   final int limit;
   final String? positionLabel;
+  final String? modeLabel;
   final bool demoDistance;
   final VoidCallback onTap;
 
@@ -209,6 +284,7 @@ class SideUsage extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
@@ -218,7 +294,13 @@ class SideUsage extends StatelessWidget {
             ),
           ),
           Text(
-            formatUsed(used, part.cycle, demo: demoDistance),
+            formatElapsedAndDue(
+              used,
+              limit,
+              part.cycle,
+              modeLabel: modeLabel,
+              demo: demoDistance,
+            ),
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 6),

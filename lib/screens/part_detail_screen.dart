@@ -48,9 +48,12 @@ class PartDetailScreen extends StatelessWidget {
               Text(heading, style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: 6),
               Text(
-                markDemo(
-                  '${formatAmount(used)} / ${formatAmount(limit)} ${part.cycle.unitLabel}',
-                  demo: store.usingDemoRides && part.cycle == CycleKind.distance,
+                formatElapsedAndDue(
+                  used,
+                  limit,
+                  part.cycle,
+                  modeLabel: modeLabel,
+                  demo: store.usingDemoRides,
                 ),
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
@@ -60,7 +63,7 @@ class PartDetailScreen extends StatelessWidget {
                 limit: limit,
                 status: status,
                 topLeft: '$percent% · ${statusLabel(status)}',
-                topRight: '$modeLabel · しきい値 ${part.thresholdPct}%',
+                topRight: 'しきい値 ${part.thresholdPct}%',
               ),
               const SizedBox(height: 12),
               Text(
@@ -72,14 +75,18 @@ class PartDetailScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: FilledButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) =>
-                                ReplaceScreen(store: store, partId: part.id),
-                          ),
-                        );
-                      },
+                      onPressed: store.canManageRecords
+                          ? () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => ReplaceScreen(
+                                    store: store,
+                                    partId: part.id,
+                                  ),
+                                ),
+                              );
+                            }
+                          : null,
                       child: const Text('交換した'),
                     ),
                   ),

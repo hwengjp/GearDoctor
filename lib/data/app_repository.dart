@@ -13,8 +13,15 @@ class AppRepository {
     return (rows.first['c'] as num).toInt() > 0;
   }
 
-  Future<List<Part>> loadParts() async {
-    final rows = await _db.query('parts', orderBy: 'sort_order ASC');
+  Future<List<Part>> loadParts({String? gearId}) async {
+    final rows = gearId == null
+        ? await _db.query('parts', orderBy: 'sort_order ASC')
+        : await _db.query(
+            'parts',
+            where: 'gear_id = ?',
+            whereArgs: [gearId],
+            orderBy: 'sort_order ASC',
+          );
     return rows.map(_partFromRow).toList();
   }
 
@@ -23,6 +30,7 @@ class AppRepository {
       'parts',
       {
         'id': part.id,
+        'gear_id': part.gearId,
         'registered_name': part.registeredName,
         'cycle': part.cycle.name,
         'limit_mode': part.limitMode.name,
@@ -42,6 +50,7 @@ class AppRepository {
           (row) => Replacement(
             id: row['id'] as String,
             partId: row['part_id'] as String,
+            gearId: row['gear_id'] as String,
             replacedOn: parseDate(row['replaced_on'] as String),
             memo: row['memo'] as String,
           ),
@@ -55,6 +64,7 @@ class AppRepository {
       {
         'id': replacement.id,
         'part_id': replacement.partId,
+        'gear_id': replacement.gearId,
         'replaced_on': formatDate(replacement.replacedOn),
         'memo': replacement.memo,
       },
@@ -70,6 +80,14 @@ class AppRepository {
     await _db.delete('replacements', where: 'part_id = ?', whereArgs: [partId]);
   }
 
+  Future<void> deleteReplacementsForPartGear(String partId, String gearId) async {
+    await _db.delete(
+      'replacements',
+      where: 'part_id = ? AND gear_id = ?',
+      whereArgs: [partId, gearId],
+    );
+  }
+
   Future<void> deletePart(String id) async {
     await deleteReplacementsForPart(id);
     await _db.delete(
@@ -80,12 +98,19 @@ class AppRepository {
     await _db.delete('parts', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<List<DisplayGroup>> loadGroups() async {
-    final rows = await _db.query('display_groups');
+  Future<List<DisplayGroup>> loadGroups({String? gearId}) async {
+    final rows = gearId == null
+        ? await _db.query('display_groups')
+        : await _db.query(
+            'display_groups',
+            where: 'gear_id = ?',
+            whereArgs: [gearId],
+          );
     return rows
         .map(
           (row) => DisplayGroup(
             id: row['id'] as String,
+            gearId: '${row['gear_id'] ?? ''}',
             displayName: row['display_name'] as String,
             frontPartId: row['front_part_id'] as String,
             rearPartId: row['rear_part_id'] as String,
@@ -97,6 +122,7 @@ class AppRepository {
   Future<void> insertGroup(DisplayGroup group) async {
     await _db.insert('display_groups', {
       'id': group.id,
+      'gear_id': group.gearId,
       'display_name': group.displayName,
       'front_part_id': group.frontPartId,
       'rear_part_id': group.rearPartId,
@@ -115,6 +141,9 @@ class AppRepository {
   }
 
   Future<void> deleteGear(String id) async {
+    await _db.delete('replacements', where: 'gear_id = ?', whereArgs: [id]);
+    await _db.delete('display_groups', where: 'gear_id = ?', whereArgs: [id]);
+    await _db.delete('parts', where: 'gear_id = ?', whereArgs: [id]);
     await _db.delete('gears', where: 'id = ?', whereArgs: [id]);
   }
 
@@ -236,6 +265,7 @@ class AppRepository {
   Part _partFromRow(Map<String, Object?> row) {
     return Part(
       id: row['id'] as String,
+      gearId: '${row['gear_id'] ?? ''}',
       registeredName: row['registered_name'] as String,
       cycle: CycleKind.values.byName(row['cycle'] as String),
       limitMode: LimitMode.values.byName(row['limit_mode'] as String),

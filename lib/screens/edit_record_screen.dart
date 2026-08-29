@@ -147,15 +147,11 @@ class _EditRecordScreenState extends State<EditRecordScreen> {
 
   Future<void> _pickDate(BuildContext context) async {
     final initial = _date ?? widget.store.now;
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: initial,
-      firstDate: DateTime(2010),
-      lastDate: DateTime(
-        widget.store.now.year,
-        widget.store.now.month,
-        widget.store.now.day,
-      ),
+      lastDate: widget.store.now,
+      currentDate: widget.store.now,
     );
     if (picked != null) {
       setState(() => _date = DateTime.utc(picked.year, picked.month, picked.day));

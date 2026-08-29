@@ -20,7 +20,7 @@ Play に出すと、知らない人も入れられるようになります。少
 | 署名 | 開発用の debug 鍵 | 自分で作るアップロード鍵。Git に置かない |
 | パッケージ名 | `com.geardoctor.gear_doctor` | 変えない。一度出したら変更できない |
 | 表示名 | GearDoctor | ストアでも同じでよい |
-| バージョン | `pubspec.yaml` の `1.0.0+1` | 出すたびに `+` の後ろ（versionCode）を増やす |
+| バージョン | `pubspec.yaml` の `1.0.0+1`。APK は `./scripts/build_apk.sh` で 0.0.1 ずつ上がる | 出すたびに `+` の後ろ（versionCode）を増やす |
 | プライバシーポリシー | [`docs/privacy-policy.html`](privacy-policy.html) | 公開 URL が必要。GitHub Pages で出す |
 | Strava 連携 | `127.0.0.1` への戻り。戻らないときは貼り付け | 審査で実機確認される。カスタム URL スキームがまだなら先に直す |
 | Strava のアイコン | 使っていない | 公式ロゴは使わない（著作権） |
@@ -84,7 +84,7 @@ flutter build appbundle
 
 できたファイルは `build/app/outputs/bundle/release/app-release.aab` です。APK ではありません。
 
-`pubspec.yaml` の版は、出すたびに上げます。例: `1.0.0+1` の次は `1.0.1+2`。`+` の後ろは毎回大きくします。
+`pubspec.yaml` の版は、出すたびに上げます。APK は `./scripts/build_apk.sh` が 0.0.1 ずつ上げます。例: `1.0.0+1` の次は `1.0.1+2`。`+` の後ろは毎回大きくします。
 
 ### 4. Play Console にアプリを作る
 

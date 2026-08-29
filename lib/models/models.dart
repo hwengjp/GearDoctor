@@ -14,7 +14,7 @@ enum LimitMode {
 
   String get label => switch (this) {
         LimitMode.recommended => '推奨',
-        LimitMode.previousCycle => '前回周期',
+        LimitMode.previousCycle => '自動',
         LimitMode.custom => '設定',
       };
 }
@@ -24,6 +24,7 @@ enum WearStatus { ok, soon, overdue }
 class Part {
   const Part({
     required this.id,
+    required this.gearId,
     required this.registeredName,
     required this.cycle,
     required this.limitMode,
@@ -34,6 +35,7 @@ class Part {
   });
 
   final String id;
+  final String gearId;
   final String registeredName;
   final CycleKind cycle;
   final LimitMode limitMode;
@@ -46,6 +48,8 @@ class Part {
       limitMode == LimitMode.custom ? customLimit : recommendedLimit;
 
   Part copyWith({
+    String? id,
+    String? gearId,
     String? registeredName,
     CycleKind? cycle,
     LimitMode? limitMode,
@@ -55,7 +59,8 @@ class Part {
     int? sortOrder,
   }) {
     return Part(
-      id: id,
+      id: id ?? this.id,
+      gearId: gearId ?? this.gearId,
       registeredName: registeredName ?? this.registeredName,
       cycle: cycle ?? this.cycle,
       limitMode: limitMode ?? this.limitMode,
@@ -71,19 +76,26 @@ class Replacement {
   const Replacement({
     required this.id,
     required this.partId,
+    required this.gearId,
     required this.replacedOn,
     required this.memo,
   });
 
   final String id;
   final String partId;
+  final String gearId;
   final DateTime replacedOn;
   final String memo;
 
-  Replacement copyWith({DateTime? replacedOn, String? memo}) {
+  Replacement copyWith({
+    String? gearId,
+    DateTime? replacedOn,
+    String? memo,
+  }) {
     return Replacement(
       id: id,
       partId: partId,
+      gearId: gearId ?? this.gearId,
       replacedOn: replacedOn ?? this.replacedOn,
       memo: memo ?? this.memo,
     );
@@ -93,12 +105,14 @@ class Replacement {
 class DisplayGroup {
   const DisplayGroup({
     required this.id,
+    required this.gearId,
     required this.displayName,
     required this.frontPartId,
     required this.rearPartId,
   });
 
   final String id;
+  final String gearId;
   final String displayName;
   final String frontPartId;
   final String rearPartId;

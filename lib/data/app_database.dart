@@ -5,6 +5,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart' as ffi;
 
+import 'seed.dart';
+
 class AppDatabase {
   AppDatabase({this.overridePath});
 
@@ -31,11 +33,12 @@ class AppDatabase {
     final path = overridePath ?? await _defaultPath();
     return openDatabase(
       path,
-      version: 1,
+      version: 3,
       onCreate: (db, version) async {
         await db.execute('''
 CREATE TABLE parts (
   id TEXT PRIMARY KEY,
+  gear_id TEXT NOT NULL,
   registered_name TEXT NOT NULL,
   cycle TEXT NOT NULL,
   limit_mode TEXT NOT NULL,
@@ -49,6 +52,7 @@ CREATE TABLE parts (
 CREATE TABLE replacements (
   id TEXT PRIMARY KEY,
   part_id TEXT NOT NULL,
+  gear_id TEXT NOT NULL,
   replaced_on TEXT NOT NULL,
   memo TEXT NOT NULL
 )
@@ -56,6 +60,7 @@ CREATE TABLE replacements (
         await db.execute('''
 CREATE TABLE display_groups (
   id TEXT PRIMARY KEY,
+  gear_id TEXT NOT NULL,
   display_name TEXT NOT NULL,
   front_part_id TEXT NOT NULL UNIQUE,
   rear_part_id TEXT NOT NULL UNIQUE
@@ -81,6 +86,37 @@ CREATE TABLE settings (
   value TEXT NOT NULL
 )
 ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute(
+            "ALTER TABLE replacements ADD COLUMN gear_id TEXT NOT NULL DEFAULT ''",
+          );
+          final selected = await db.query(
+            'settings',
+            where: 'key = ?',
+            whereArgs: ['selected_gear_id'],
+          );
+          var gearId = selected.isEmpty
+              ? ''
+              : '${selected.first['value'] ?? ''}';
+          if (gearId.isEmpty) {
+            final gears = await db.query('gears', limit: 1);
+            if (gears.isNotEmpty) {
+              gearId = '${gears.first['id']}';
+            }
+          }
+          if (gearId.isNotEmpty) {
+            await db.update(
+              'replacements',
+              {'gear_id': gearId},
+              where: "gear_id = ''",
+            );
+          }
+        }
+        if (oldVersion < 3) {
+          await migrateToPerGearParts(db);
+        }
       },
     );
   }

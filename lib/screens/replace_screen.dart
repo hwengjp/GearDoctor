@@ -83,16 +83,18 @@ class _ReplaceScreenState extends State<ReplaceScreen> {
               ),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: () async {
-                  await widget.store.addReplacement(
-                    partId: part.id,
-                    replacedOn: _date,
-                    memo: _memo.text,
-                  );
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                  }
-                },
+                onPressed: widget.store.canManageRecords
+                    ? () async {
+                        await widget.store.addReplacement(
+                          partId: part.id,
+                          replacedOn: _date,
+                          memo: _memo.text,
+                        );
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      }
+                    : null,
                 child: const Text('記録する'),
               ),
               const SizedBox(height: 20),
@@ -126,11 +128,11 @@ class _ReplaceScreenState extends State<ReplaceScreen> {
   }
 
   Future<void> _pickDate(BuildContext context) async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: _date,
-      firstDate: DateTime(2010),
-      lastDate: DateTime(widget.store.now.year, widget.store.now.month, widget.store.now.day),
+      lastDate: widget.store.now,
+      currentDate: widget.store.now,
     );
     if (picked != null) {
       setState(() => _date = DateTime.utc(picked.year, picked.month, picked.day));

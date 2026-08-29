@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../data/seed.dart';
+import '../app_version.dart';
 import '../state/app_store.dart';
-import '../widgets/widgets.dart';
-import 'display_group_screen.dart';
-import 'edit_part_screen.dart';
-import 'import_replacements_screen.dart';
+import 'gear_screen.dart';
 import 'strava_connect_screen.dart';
+import 'sync_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key, required this.store});
@@ -55,58 +53,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
                 child: const Text('Strava 連携'),
               ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => SyncScreen(store: widget.store),
+                    ),
+                  );
+                },
+                child: const Text('Strava同期'),
+              ),
               const SizedBox(height: 16),
               Text('ギア', style: Theme.of(context).textTheme.bodySmall),
               Text(
-                '距離を足す自転車を1台選ぶ。',
+                '距離を足す自転車と、そのギアの交換記録です。',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 8),
-              if (widget.store.gears.isEmpty)
-                const Text('先に連携すると、ここに自転車が並びます。'),
-              for (final gear in widget.store.gears) ...[
-                SelectTile(
-                  selected: widget.store.settings.selectedGearId == gear.id,
-                  title: demoGearLabel(
-                    gear.name,
-                    demo: isDemoGearId(gear.id),
-                    selected: widget.store.settings.selectedGearId == gear.id,
-                  ),
-                  onTap: () => widget.store.selectGear(gear.id),
-                ),
-                const SizedBox(height: 8),
-              ],
-              FilledButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => EditPartScreen(store: widget.store),
-                    ),
-                  );
-                },
-                child: const Text('部品を追加'),
-              ),
-              const SizedBox(height: 8),
               OutlinedButton(
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => ImportReplacementsScreen(store: widget.store),
+                      builder: (_) => GearScreen(store: widget.store),
                     ),
                   );
                 },
-                child: const Text('交換記録の CSV'),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => DisplayGroupScreen(store: widget.store),
-                    ),
-                  );
-                },
-                child: const Text('表示をまとめる / 分ける'),
+                child: const Text('ギア'),
               ),
               const SizedBox(height: 16),
               Text('初期化', style: Theme.of(context).textTheme.bodySmall),
@@ -123,6 +96,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 12),
                 Text(_message!),
               ],
+              const SizedBox(height: 24),
+              Text(
+                appVersionLabel,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
           ),
         );

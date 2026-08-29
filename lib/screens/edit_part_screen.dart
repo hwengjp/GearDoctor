@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../data/seed.dart';
 import '../domain/dates.dart';
 import '../domain/recommendations.dart';
 import '../models/models.dart';
@@ -100,9 +101,9 @@ class _EditPartScreenState extends State<EditPartScreen> {
           if (_isNew) ...[
             const SizedBox(height: 4),
             Text(
-              widget.store.settings.lastSyncFrom == null
-                  ? '最初の交換日は開始日です。まだ開始日が無いときは今日になります。'
-                  : '最初の交換日は開始日（${formatDate(widget.store.settings.lastSyncFrom!)}）です。入力しません。',
+              widget.store.oldestSelectedRideOn == null
+                  ? '最初の交換日は、このギアのいちばん古い走行日です。走行がまだ無いときは今日になります。'
+                  : '最初の交換日は、このギアのいちばん古い走行日（${formatDate(widget.store.oldestSelectedRideOn!)}）です。入力しません。',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -146,8 +147,8 @@ class _EditPartScreenState extends State<EditPartScreen> {
           SelectTile(
             selected: _mode == LimitMode.previousCycle,
             title: previous == null
-                ? '前回交換周期から計算  —'
-                : '前回交換周期から計算  ${formatAmount(previous)} $unit',
+                ? '自動  —'
+                : '自動  ${formatAmount(previous)} $unit',
             subtitle: '直近の2回の間隔。毎回計算',
             onTap: () => setState(() => _mode = LimitMode.previousCycle),
           ),
@@ -243,6 +244,7 @@ class _EditPartScreenState extends State<EditPartScreen> {
         : widget.store.partById(widget.partId!);
     final part = Part(
       id: existing?.id ?? widget.store.newId('p'),
+      gearId: existing?.gearId ?? widget.store.settings.selectedGearId ?? '',
       registeredName: name,
       cycle: _cycle,
       limitMode: _mode,
@@ -251,6 +253,15 @@ class _EditPartScreenState extends State<EditPartScreen> {
       thresholdPct: threshold,
       sortOrder: existing?.sortOrder ?? widget.store.nextSortOrder(),
     );
+    if (_isNew && widget.store.usingDemoRides) {
+      setState(() => _error = DemoRequiresSyncException.message);
+      await showDemoRequiresSyncDialog(context);
+      return;
+    }
+    if (_isNew && !widget.store.canManageRecords) {
+      setState(() => _error = 'ギアを選んでから部品を追加してください');
+      return;
+    }
     await widget.store.savePart(part, isNew: _isNew);
     if (mounted) {
       Navigator.of(context).pop();

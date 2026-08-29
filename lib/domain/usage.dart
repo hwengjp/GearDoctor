@@ -91,6 +91,26 @@ DateTime? newestRideOn({
   return newest;
 }
 
+DateTime? oldestRideOn({
+  required List<Ride> rides,
+  required String? gearId,
+}) {
+  if (gearId == null) {
+    return null;
+  }
+  DateTime? oldest;
+  for (final ride in rides) {
+    if (ride.gearId != gearId) {
+      continue;
+    }
+    final day = dateOnly(ride.startedOn);
+    if (oldest == null || day.isBefore(oldest)) {
+      oldest = day;
+    }
+  }
+  return oldest;
+}
+
 double currentUsed({
   required Part part,
   required List<Replacement> replacements,

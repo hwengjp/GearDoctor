@@ -21,7 +21,7 @@ import {
   useHostTheme,
 } from "cursor/canvas";
 
-type ScreenId = "home" | "detail" | "replace" | "edit-record" | "add" | "split-merge" | "import-csv" | "sync" | "strava" | "settings";
+type ScreenId = "home" | "detail" | "replace" | "edit-record" | "add" | "split-merge" | "import-csv" | "sync" | "strava" | "settings" | "gear";
 type Position = "rear" | "front" | "single";
 type LimitMode = "recommended" | "previousCycle" | "custom";
 type CycleKind = "distance" | "months";
@@ -130,8 +130,16 @@ function unitLabel(cycle: CycleKind) {
   return cycle === "months" ? "か月" : "km";
 }
 
-function formatUsed(used: number, cycle: CycleKind) {
-  const text = `${used.toLocaleString()}${unitLabel(cycle)}`;
+function formatElapsedAndDue(
+  used: number,
+  limit: number,
+  cycle: CycleKind,
+  modeLabel?: string,
+) {
+  let text = `${used.toLocaleString()} / ${limit.toLocaleString()} ${unitLabel(cycle)}`;
+  if (modeLabel) {
+    text += ` ${modeLabel}`;
+  }
   return cycle === "distance" ? `${text}（デモ）` : text;
 }
 
@@ -415,7 +423,7 @@ function SideBlock({
         {statusLine}
       </Text>
       <Text size="small" tone="secondary">
-        {formatUsed(side.usedKm, cycle)}
+        {formatElapsedAndDue(side.usedKm, side.limitKm, cycle, "推奨")}
       </Text>
       <UsageBar
         total={side.limitKm}
@@ -484,20 +492,23 @@ function HomeScreen({
           </Text>
         </div>
         <div
-          onClick={() => go("settings")}
           style={{
             display: "flex",
             justifyContent: "space-between",
+            alignItems: "center",
             gap: 8,
-            cursor: "pointer",
           }}
         >
-          <Text size="small" tone="secondary">
-            ギア: {gear}（デモ）
-          </Text>
-          <Text size="small" tone="secondary">
-            最終同期 2025-07-17〜2026-07-15（デモ）
-          </Text>
+          <div onClick={() => go("gear")} style={{ cursor: "pointer", flex: 1 }}>
+            <Text weight="semibold">
+              ギア: {gear}（デモ）
+            </Text>
+          </div>
+          <div onClick={() => go("sync")} style={{ cursor: "pointer" }}>
+            <Text size="small" tone="secondary">
+              最終同期 2025-07-17〜2026-07-15（デモ）
+            </Text>
+          </div>
         </div>
         {alerts.length > 0 ? (
           <div
@@ -620,7 +631,7 @@ function DetailScreen({
   const pos = positionLabel(side.position);
   const title = pos ? `${part.name} · ${pos}` : part.name;
   const modeLabel =
-    limitMode === "recommended" ? "推奨" : limitMode === "previousCycle" ? "前回周期" : "設定";
+    limitMode === "recommended" ? "推奨" : limitMode === "previousCycle" ? "自動" : "設定";
   const unit = unitLabel(part.cycle);
   return (
     <Phone title={title} onBack={() => go("home")}>
@@ -629,14 +640,12 @@ function DetailScreen({
           {part.cycle === "months" ? "交換後の経過" : "交換後の走行距離"}
         </Text>
         <Text weight="semibold" style={{ fontSize: 22, lineHeight: "28px" }}>
-          {part.cycle === "distance"
-            ? `${side.usedKm.toLocaleString()} / ${limitKm.toLocaleString()} ${unit}（デモ）`
-            : `${side.usedKm.toLocaleString()} / ${limitKm.toLocaleString()} ${unit}`}
+          {formatElapsedAndDue(side.usedKm, limitKm, part.cycle, modeLabel)}
         </Text>
         <UsageBar
           total={limitKm}
           topLeftLabel={`${p}% · ${st.label}`}
-          topRightLabel={`${modeLabel} · しきい値 ${side.thresholdPct}%`}
+          topRightLabel={`しきい値 ${side.thresholdPct}%`}
           segments={[{ id: part.id, value: side.usedKm, color: st.color }]}
         />
         <Text size="small" tone="secondary">
@@ -814,7 +823,7 @@ function AddScreen({
   const recommended = cycleKind === "months" ? recommendedMonths : recommendedKm;
   const custom = cycleKind === "months" ? customLimitMonths : customLimitKm;
   return (
-    <Phone title="部品を追加" onBack={() => go("settings")}>
+    <Phone title="部品を追加" onBack={() => go("gear")}>
       <Stack gap={14}>
         <Stack gap={4}>
           <Text size="small" tone="secondary">
@@ -827,6 +836,9 @@ function AddScreen({
           />
           <Text size="small" tone="tertiary">
             ホームに出す名前。前と後ろは別々に登録します。
+          </Text>
+          <Text size="small" tone="tertiary">
+            最初の交換日は、このギアのいちばん古い走行日です。入力しません。
           </Text>
         </Stack>
         <Stack gap={6}>
@@ -903,7 +915,7 @@ function AddScreen({
             }}
           >
             <Text size="small" weight={limitMode === "previousCycle" ? "semibold" : "normal"}>
-              前回交換周期から計算  4,800 {unit}
+              自動  4,800 {unit}
             </Text>
             <Text size="small" tone="tertiary">
               直近の2回の間隔。毎回計算
@@ -964,7 +976,7 @@ function SplitMergeScreen({ go }: { go: (screen: ScreenId) => void }) {
   };
 
   return (
-    <Phone title="表示のまとめ" onBack={() => go("settings")}>
+    <Phone title="表示のまとめ" onBack={() => go("gear")}>
       <Stack gap={14}>
         <Text size="small" tone="tertiary">
           ホームでは1行にまとめます。部品そのものは分かれています。
@@ -1079,16 +1091,26 @@ function SplitMergeScreen({ go }: { go: (screen: ScreenId) => void }) {
             <PhoneButton label="分けて表示" variant="primary" onClick={() => go("home")} />
           </Stack>
         )}
-        <PhoneButton label="キャンセル" variant="ghost" onClick={() => go("settings")} />
+        <PhoneButton label="キャンセル" variant="ghost" onClick={() => go("gear")} />
       </Stack>
     </Phone>
   );
 }
 
-function ImportCsvScreen({ go }: { go: (screen: ScreenId) => void }) {
+function ImportCsvScreen({
+  go,
+  gear,
+}: {
+  go: (screen: ScreenId) => void;
+  gear: string;
+}) {
   return (
-    <Phone title="交換記録の CSV" onBack={() => go("settings")}>
+    <Phone title="記録の CSV" onBack={() => go("gear")}>
       <Stack gap={14}>
+        <Text weight="semibold">{gear}（デモ）</Text>
+        <Text size="small" tone="tertiary">
+          このギアの交換記録だけを出し入れします。他のギアの記録はそのままです。
+        </Text>
         <Text>入力欄に出してコピーします。</Text>
         <PhoneButton label="いまの記録を書き出す" variant="ghost" onClick={() => go("import-csv")} />
         <Text size="small" tone="secondary">
@@ -1109,13 +1131,13 @@ function ImportCsvScreen({ go }: { go: (screen: ScreenId) => void }) {
           {"\n"}
           …
         </Text>
-        <Text>部品は増えません。登録名（前タイヤ）で結びます。CSV に出た部品の記録は差し替えます。</Text>
+        <Text>部品は増えません。登録名（前タイヤ）で結びます。CSV に出た部品の、このギアの記録は差し替えます。</Text>
         <PhoneButton label="CSVを取り込み" variant="primary" onClick={() => go("import-csv")} />
         <Text size="small" tone="secondary">
           差し替え 1 件
         </Text>
         <Text>前タイヤ  2025-03-01  GP5000</Text>
-        <PhoneButton label="取り込む" variant="primary" onClick={() => go("settings")} />
+        <PhoneButton label="取り込む" variant="primary" onClick={() => go("gear")} />
       </Stack>
     </Phone>
   );
@@ -1129,10 +1151,10 @@ function SyncScreen({ go }: { go: (screen: ScreenId) => void }) {
           <Text size="small" tone="secondary">
             データの範囲
           </Text>
-          <Text weight="semibold">開始日  2025-07-17（デモ）</Text>
+          <Text weight="semibold">Strava開始日  2025-07-17（デモ）</Text>
           <Text weight="semibold">何日まで  2026-07-15（デモ）</Text>
           <Text size="small" tone="tertiary">
-            何日までは、開始日以降で入っているいちばん新しい走行の日です。
+            何日までは、Strava開始日以降で入っているいちばん新しい走行の日です。
           </Text>
         </Stack>
         <Text>期間を選んで取得します。自動では取りに行きません。</Text>
@@ -1140,7 +1162,10 @@ function SyncScreen({ go }: { go: (screen: ScreenId) => void }) {
         <PhoneButton label="前回から 6 か月" variant="ghost" onClick={() => go("home")} />
         <PhoneButton label="前回から 1 年" variant="ghost" onClick={() => go("home")} />
         <div style={{ height: 16 }} />
-        <PhoneButton label="開始日を変更" variant="ghost" onClick={() => go("home")} />
+        <Text size="small" tone="tertiary">
+          Strava開始日を変えると、取り込んだ走行は消えて初期化されます。新しい日から取り直します。
+        </Text>
+        <PhoneButton label="Strava開始日を変更" variant="ghost" onClick={() => go("home")} />
       </Stack>
     </Phone>
   );
@@ -1180,7 +1205,7 @@ function StravaConnectScreen({ go }: { go: (screen: ScreenId) => void }) {
   );
 }
 
-function SettingsScreen({
+function GearScreen({
   go,
   gear,
   onSelectGear,
@@ -1190,6 +1215,48 @@ function SettingsScreen({
   onSelectGear: (name: string) => void;
 }) {
   const t = useHostTheme();
+  return (
+    <Phone title="ギア" onBack={() => go("home")}>
+      <Stack gap={14}>
+        <Stack gap={4}>
+          <Text weight="semibold">{gear}（デモ）</Text>
+          <Text size="small" tone="tertiary">
+            Strava から取った自転車だけ選べます。部品の追加・設定、交換記録、CSV は選んだギアだけです。初期の部品は同じです。デモのあいだは部品の追加と記録の CSV は使えません。先に Strava を同期してください。
+          </Text>
+        </Stack>
+        {GEARS.map((name) => {
+          const selected = name === gear;
+          return (
+            <div
+              key={name}
+              onClick={() => onSelectGear(name)}
+              style={{
+                padding: 10,
+                borderRadius: 8,
+                border: `1px solid ${selected ? t.stroke.primary : t.stroke.secondary}`,
+                background: selected ? t.fill.secondary : t.fill.tertiary,
+                cursor: "pointer",
+              }}
+            >
+              <Text size="small" weight={selected ? "semibold" : "normal"}>
+                {selected ? `${name}（デモ・選択中）` : `${name}（デモ）`}
+              </Text>
+            </div>
+          );
+        })}
+        <PhoneButton label="部品を追加" variant="primary" onClick={() => go("add")} />
+        <PhoneButton label="記録の CSV" variant="ghost" onClick={() => go("import-csv")} />
+        <PhoneButton label="表示をまとめる / 分ける" variant="ghost" onClick={() => go("split-merge")} />
+      </Stack>
+    </Phone>
+  );
+}
+
+function SettingsScreen({
+  go,
+}: {
+  go: (screen: ScreenId) => void;
+}) {
   return (
     <Phone title="設定" onBack={() => go("home")}>
       <Stack gap={14}>
@@ -1203,37 +1270,16 @@ function SettingsScreen({
           </Text>
         </Stack>
         <PhoneButton label="Strava 連携" variant="primary" onClick={() => go("strava")} />
-        <Stack gap={6}>
+        <PhoneButton label="Strava同期" variant="ghost" onClick={() => go("sync")} />
+        <Stack gap={4}>
           <Text size="small" tone="secondary">
             ギア
           </Text>
           <Text size="small" tone="tertiary">
-            距離を足す自転車を1台選ぶ。
+            距離を足す自転車と、そのギアの交換記録です。
           </Text>
-          {GEARS.map((name) => {
-            const selected = name === gear;
-            return (
-              <div
-                key={name}
-                onClick={() => onSelectGear(name)}
-                style={{
-                  padding: 10,
-                  borderRadius: 8,
-                  border: `1px solid ${selected ? t.stroke.primary : t.stroke.secondary}`,
-                  background: selected ? t.fill.secondary : t.fill.tertiary,
-                  cursor: "pointer",
-                }}
-              >
-                <Text size="small" weight={selected ? "semibold" : "normal"}>
-                  {selected ? `${name}（デモ・選択中）` : `${name}（デモ）`}
-                </Text>
-              </div>
-            );
-          })}
         </Stack>
-        <PhoneButton label="部品を追加" variant="primary" onClick={() => go("add")} />
-        <PhoneButton label="交換記録の CSV" variant="ghost" onClick={() => go("import-csv")} />
-        <PhoneButton label="表示をまとめる / 分ける" variant="ghost" onClick={() => go("split-merge")} />
+        <PhoneButton label="ギア" variant="ghost" onClick={() => go("gear")} />
         <Stack gap={4}>
           <Text size="small" tone="secondary">
             初期化
@@ -1243,6 +1289,9 @@ function SettingsScreen({
           </Text>
         </Stack>
         <PhoneButton label="初期状態に戻す" variant="ghost" onClick={() => go("settings")} />
+        <Text size="small" tone="tertiary">
+          GearDoctor 1.0.0
+        </Text>
       </Stack>
     </Phone>
   );
@@ -1331,11 +1380,13 @@ export default function GearDoctorUiWireframe() {
     ) : screen === "sync" ? (
       <SyncScreen go={go} />
     ) : screen === "import-csv" ? (
-      <ImportCsvScreen go={go} />
+      <ImportCsvScreen go={go} gear={gear} />
     ) : screen === "strava" ? (
       <StravaConnectScreen go={go} />
+    ) : screen === "gear" ? (
+      <GearScreen go={go} gear={gear} onSelectGear={setGear} />
     ) : (
-      <SettingsScreen go={go} gear={gear} onSelectGear={setGear} />
+      <SettingsScreen go={go} />
     );
 
   return (
@@ -1363,8 +1414,11 @@ export default function GearDoctorUiWireframe() {
         <Pill active={screen === "add"} onClick={() => setScreen("add")}>
           部品を追加
         </Pill>
+        <Pill active={screen === "gear"} onClick={() => setScreen("gear")}>
+          ギア
+        </Pill>
         <Pill active={screen === "import-csv"} onClick={() => setScreen("import-csv")}>
-          交換記録の CSV
+          記録の CSV
         </Pill>
         <Pill active={screen === "split-merge"} onClick={() => setScreen("split-merge")}>
           表示のまとめ
@@ -1386,7 +1440,7 @@ export default function GearDoctorUiWireframe() {
         <Stack gap={16}>
           <H2>決まったこと</H2>
           <Text>
-            下部タブなし。交換したは詳細画面。ホームの主ボタンは同期。部品は登録名だけで管理し、追加に F/R の種別は付けない。左右の合体は表示のまとめだけ。同期は自動ではなく、押したときだけ。
+            下部タブなし。交換したは詳細画面。ホームの主ボタンは同期。部品は登録名だけで管理し、追加に F/R の種別は付けない。左右の合体は表示のまとめだけ。同期は自動ではなく、押したときだけ。デモのあいだは部品の追加と記録の CSV はエラーにし、先に Strava を同期する。
           </Text>
           <Table
             headers={["画面", "上から下", "横並び"]}
@@ -1394,11 +1448,12 @@ export default function GearDoctorUiWireframe() {
               ["ホーム", "デモ案内 → ギアと最終同期 → 警告 → 部品 → 同期", "ギア | 最終同期、R | F"],
               ["詳細", "距離 → バー → 交換日 → 操作 → 過去の交換記録", "交換した | 編集"],
               ["記録を編集", "日付 → メモ → 保存 → 削除", "なし（縦のみ）"],
+              ["ギア", "大きなギア名 → 自転車の選択 → 部品追加 / CSV / まとめ", "なし（縦のみ）"],
               ["部品を追加", "登録名 → 周期 → 目安 → しきい値", "距離 | 月"],
-              ["交換記録の CSV", "書き出し → 貼り付け → CSVを取り込み", "なし（縦のみ）"],
+              ["記録の CSV", "ギア名 → 書き出し → 貼り付け → CSVを取り込み", "なし（縦のみ）"],
               ["表示のまとめ", "2件選択 → どちらがF → 表示名", "なし（縦のみ）"],
-              ["同期", "開始日と何日まで → 期間の選択 → 取得", "なし（縦のみ）"],
-              ["設定", "Strava 連携へ → ギア → 部品を追加 → 初期化", "なし（縦のみ）"],
+              ["同期", "Strava開始日と何日まで → 期間の選択 → 取得", "なし（縦のみ）"],
+              ["設定", "Strava 連携へ → Strava同期へ → ギアへ → 初期化 → バージョン", "なし（縦のみ）"],
               ["Strava 連携", "状態 → ID/Secret → 連携 → 解除 → 連携方法", "なし（縦のみ）"],
             ]}
           />
@@ -1414,13 +1469,13 @@ export default function GearDoctorUiWireframe() {
           </Callout>
 
           <H3>交換目安</H3>
-          <Callout tone="info" title="推奨・前回周期・設定">
-            三つの数値を見せ、選んだ一方を使う。前回周期は直近の2回の間隔。毎回計算。
+          <Callout tone="info" title="推奨・自動・設定">
+            三つの数値を見せ、選んだ一方を使う。自動は直近の2回の間隔。毎回計算。
           </Callout>
 
           <H3>同期画面は未確定</H3>
           <Callout tone="warning" title="別途相談">
-            期間は 3か月・6か月・1年・開始日。失敗時の続きはまだ決めません。ギアは設定で選びます。
+            期間は 3か月・6か月・1年・Strava開始日。失敗時の続きはまだ決めません。ギアはホームまたは設定から選びます。交換記録はギアごとです。
           </Callout>
 
           <Card>

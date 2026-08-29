@@ -14,6 +14,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+String aeroadPart(String catalogId) => partIdOnGear(catalogId, 'g_aeroad');
+
 void main() {
   late Directory dir;
 
@@ -62,9 +64,46 @@ void main() {
     ]);
     expect(store.selectedGear?.name, 'Aeroad');
     expect(store.usingDemoRides, isTrue);
-    expect(store.partById('p_battery'), isNull);
-    expect(store.partById('p_front_oil')!.cycle, CycleKind.distance);
-    expect(store.usedOf(store.partById('p_speed_batt')!), 7);
+    expect(store.partById(aeroadPart('p_battery')), isNull);
+    expect(store.partById(aeroadPart('p_front_oil'))!.cycle, CycleKind.distance);
+    expect(store.usedOf(store.partById(aeroadPart('p_speed_batt'))!), 7);
+  });
+
+  test('demo blocks new parts and CSV import until Strava sync', () async {
+    final store = await openStore();
+    final part = Part(
+      id: 'p_blocked',
+      gearId: 'g_aeroad',
+      registeredName: 'ブロック',
+      cycle: CycleKind.distance,
+      limitMode: LimitMode.recommended,
+      recommendedLimit: 3000,
+      customLimit: 3000,
+      thresholdPct: 80,
+      sortOrder: store.nextSortOrder(),
+    );
+    await expectLater(
+      store.savePart(part, isNew: true),
+      throwsA(isA<DemoRequiresSyncException>()),
+    );
+    expect(store.partById('p_blocked'), isNull);
+
+    final parsed = parseReplacementCsv('''
+登録名,交換日,メモ
+チェーン,2026-06-12,CSV
+''');
+    final plan = planReplacementImport(
+      rows: parsed.rows,
+      parts: store.parts,
+    );
+    await expectLater(
+      store.importReplacementPlan(plan),
+      throwsA(isA<DemoRequiresSyncException>()),
+    );
+    expect(
+      store.replacementsFor(aeroadPart('p_chain')).map((item) => formatDate(item.replacedOn)),
+      ['2025-11-12'],
+    );
   });
 
   test('existing installs drop battery and convert oil to distance', () async {
@@ -75,6 +114,7 @@ void main() {
     await repo.upsertPart(
       const Part(
         id: 'p_battery',
+        gearId: 'g_aeroad',
         registeredName: 'バッテリー',
         cycle: CycleKind.months,
         limitMode: LimitMode.recommended,
@@ -84,7 +124,8 @@ void main() {
         sortOrder: 99,
       ),
     );
-    final oil = (await repo.loadParts()).firstWhere((part) => part.id == 'p_front_oil');
+    final oil = (await repo.loadParts(gearId: 'g_aeroad'))
+        .firstWhere((part) => part.id == aeroadPart('p_front_oil'));
     await repo.upsertPart(
       oil.copyWith(
         cycle: CycleKind.months,
@@ -93,33 +134,37 @@ void main() {
       ),
     );
 
-    await ensureMissingDefaultParts(repo, now: parseDate('2026-08-23'));
-    final parts = await repo.loadParts();
+    await ensureMissingDefaultParts(
+      repo,
+      now: parseDate('2026-08-23'),
+      gearId: 'g_aeroad',
+    );
+    final parts = await repo.loadParts(gearId: 'g_aeroad');
     expect(parts.any((part) => part.id == 'p_battery'), isFalse);
-    final updatedOil = parts.firstWhere((part) => part.id == 'p_front_oil');
+    final updatedOil = parts.firstWhere((part) => part.id == aeroadPart('p_front_oil'));
     expect(updatedOil.cycle, CycleKind.distance);
     expect(updatedOil.recommendedLimit, 10000);
   });
 
   test('combine and dissolve only change display', () async {
     final store = await openStore();
-    await store.dissolveGroup('grp_tire');
+    await store.dissolveGroup(groupIdOnGear('grp_tire', 'g_aeroad'));
     expect(store.cards.any((card) => card.title == '前タイヤ'), isTrue);
     expect(store.cards.any((card) => card.title == '後タイヤ'), isTrue);
-    expect(store.partById('p_front_tire')!.registeredName, '前タイヤ');
+    expect(store.partById(aeroadPart('p_front_tire'))!.registeredName, '前タイヤ');
 
     await store.combineDisplay(
-      frontPartId: 'p_front_tire',
-      rearPartId: 'p_rear_tire',
+      frontPartId: aeroadPart('p_front_tire'),
+      rearPartId: aeroadPart('p_rear_tire'),
       displayName: 'タイヤ',
     );
     expect(store.cards.any((card) => card.title == 'タイヤ'), isTrue);
-    expect(store.partById('p_front_tire')!.registeredName, '前タイヤ');
+    expect(store.partById(aeroadPart('p_front_tire'))!.registeredName, '前タイヤ');
   });
 
   test('replacement date change recalculates usage', () async {
     final store = await openStore();
-    final part = store.partById('p_chain')!;
+    final part = store.partById(aeroadPart('p_chain'))!;
     final before = store.usedOf(part);
     expect(before, greaterThan(0));
 
@@ -131,11 +176,14 @@ void main() {
     expect(store.usedOf(part), 0);
   });
 
-  test('new part first replacement is the sync start date', () async {
+  test('new part first replacement is the oldest ride of the selected gear', () async {
     final store = await openStore();
+    await store.convertDemoRidesForTest();
+    expect(formatDate(store.partOriginOn), '2023-04-15');
     await store.savePart(
       Part(
         id: 'p_new',
+        gearId: 'g_aeroad',
         registeredName: '新品',
         cycle: CycleKind.distance,
         limitMode: LimitMode.recommended,
@@ -147,7 +195,30 @@ void main() {
       isNew: true,
     );
     final first = store.replacementsFor('p_new').single;
-    expect(formatDate(first.replacedOn), '2025-07-17');
+    expect(formatDate(first.replacedOn), '2023-04-15');
+  });
+
+  test('new part first replacement is today when the selected gear has no rides', () async {
+    final store = await openStore();
+    await store.convertDemoRidesForTest();
+    await store.selectGear('g_endurace');
+    expect(store.oldestSelectedRideOn, isNull);
+    await store.savePart(
+      Part(
+        id: 'p_endurace_only',
+        gearId: 'g_endurace',
+        registeredName: 'Endurace用',
+        cycle: CycleKind.distance,
+        limitMode: LimitMode.recommended,
+        recommendedLimit: 3000,
+        customLimit: 3000,
+        thresholdPct: 80,
+        sortOrder: store.nextSortOrder(),
+      ),
+      isNew: true,
+    );
+    final first = store.replacementsFor('p_endurace_only').single;
+    expect(formatDate(first.replacedOn), '2026-08-23');
   });
 
   test('Strava tokens persist on the device and survive reload', () async {
@@ -178,9 +249,11 @@ void main() {
 
   test('resetToDemo restores seed parts, rides, and clears Strava', () async {
     final store = await openStore();
+    await store.convertDemoRidesForTest();
     await store.savePart(
       Part(
         id: 'p_custom',
+        gearId: 'g_aeroad',
         registeredName: 'カスタム部品',
         cycle: CycleKind.distance,
         limitMode: LimitMode.recommended,
@@ -202,7 +275,9 @@ void main() {
         bikes: const [Gear(id: 'b1', name: 'Tarmac')],
       ),
     );
-    expect(store.partById('p_custom'), isNotNull);
+    expect(store.partById('p_custom'), isNull);
+    expect(store.parts.length, 18);
+    expect(store.parts.every((part) => part.gearId == 'b1'), isTrue);
     expect(store.settings.stravaConnected, isTrue);
     expect(store.gears.any((gear) => gear.id == 'b1'), isTrue);
 
@@ -244,8 +319,9 @@ void main() {
 
   test('CSV import replaces history for parts in the file', () async {
     final store = await openStore();
+    await store.convertDemoRidesForTest();
     expect(
-      store.replacementsFor('p_chain').map((item) => formatDate(item.replacedOn)),
+      store.replacementsFor(aeroadPart('p_chain')).map((item) => formatDate(item.replacedOn)),
       ['2025-11-12'],
     );
     final parsed = parseReplacementCsv('''
@@ -261,15 +337,81 @@ void main() {
     expect(result.added, 1);
     expect(result.skippedDuplicates, 0);
     expect(
-      store.replacementsFor('p_chain').map((item) => formatDate(item.replacedOn)).toList(),
+      store.replacementsFor(aeroadPart('p_chain')).map((item) => formatDate(item.replacedOn)).toList(),
       ['2026-06-12'],
     );
     expect(
-      store.replacementsFor('p_front_tire').any(
+      store.replacementsFor(aeroadPart('p_front_tire')).any(
             (item) => formatDate(item.replacedOn) == '2023-04-02',
           ),
       isTrue,
     );
+  });
+
+  test('replacements, parts, and CSV are per selected gear', () async {
+    final store = await openStore();
+    await store.convertDemoRidesForTest();
+    expect(store.replacementsFor(aeroadPart('p_chain')), hasLength(1));
+
+    await store.selectGear('g_endurace');
+    final enduraceChain =
+        store.parts.firstWhere((part) => part.registeredName == 'チェーン');
+    expect(enduraceChain.id, isNot(aeroadPart('p_chain')));
+    expect(store.replacementsFor(enduraceChain.id), hasLength(1));
+
+    await store.addReplacement(
+      partId: enduraceChain.id,
+      replacedOn: parseDate('2026-02-01'),
+      memo: 'Endurace',
+    );
+    expect(
+      store.replacementsFor(enduraceChain.id).map((item) => formatDate(item.replacedOn)),
+      ['2026-02-01', '2023-04-15'],
+    );
+
+    await store.selectGear('g_aeroad');
+    expect(
+      store.replacementsFor(aeroadPart('p_chain')).map((item) => formatDate(item.replacedOn)),
+      ['2025-11-12'],
+    );
+
+    await store.selectGear('g_endurace');
+    final parsed = parseReplacementCsv('''
+登録名,交換日,メモ
+チェーン,2026-04-01,CSV
+''');
+    final plan = planReplacementImport(
+      rows: parsed.rows,
+      parts: store.parts,
+    );
+    await store.importReplacementPlan(plan);
+    expect(
+      store.replacementsFor(enduraceChain.id).map((item) => formatDate(item.replacedOn)),
+      ['2026-04-01'],
+    );
+
+    await store.selectGear('g_aeroad');
+    expect(
+      store.replacementsFor(aeroadPart('p_chain')).map((item) => formatDate(item.replacedOn)),
+      ['2025-11-12'],
+    );
+  });
+
+  test('editing a part on one gear does not change the same name on another', () async {
+    final store = await openStore();
+    await store.convertDemoRidesForTest();
+    final aeroadChain = store.partById(aeroadPart('p_chain'))!;
+    await store.savePart(
+      aeroadChain.copyWith(customLimit: 1111, limitMode: LimitMode.custom),
+      isNew: false,
+    );
+    expect(store.partById(aeroadPart('p_chain'))!.customLimit, 1111);
+
+    await store.selectGear('g_endurace');
+    final enduraceChain =
+        store.parts.firstWhere((part) => part.registeredName == 'チェーン');
+    expect(enduraceChain.customLimit, 4000);
+    expect(enduraceChain.limitMode, LimitMode.recommended);
   });
 
   test('syncForward stores bike rides and advances fetched-through', () async {

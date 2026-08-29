@@ -34,10 +34,10 @@ GearDoctor/
 ```
 flutter test
 flutter run -d linux
-flutter build apk
+./scripts/build_apk.sh
 ```
 
-`flutter` が見つからないときは、その端末で `source ~/.bashrc` を実行するか、新しい端末を開きます。APK は `build/app/outputs/flutter-apk/app-release.apk` です。
+`flutter` が見つからないときは、その端末で `source ~/.bashrc` を実行するか、新しい端末を開きます。APK は `build/app/outputs/flutter-apk/app-release.apk` です。作るたびに版が 0.0.1 上がり、設定画面の表示と揃います。
 
 ## ドキュメント
 

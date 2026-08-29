@@ -91,7 +91,7 @@ ReplacementCsvParseResult parseReplacementCsv(
     }
     if (dateRaw.isEmpty) {
       if (startDate == null) {
-        errors.add('$lineNumber 行目: 交換日が空です。開始日を指定するか、YYYY-MM-DD を入れてください。');
+        errors.add('$lineNumber 行目: 交換日が空です。YYYY-MM-DD を入れるか、空のままにするとこのギアの最初の走行日になります。');
         continue;
       }
       dateRaw = formatDate(startDate);
@@ -248,9 +248,12 @@ String csvEscape(String value) {
 String exportReplacementCsv({
   required List<Part> parts,
   required List<Replacement> replacements,
+  String? gearId,
 }) {
   final byId = {for (final part in parts) part.id: part};
-  final rows = [...replacements];
+  final rows = [
+    ...replacements.where((item) => gearId == null || item.gearId == gearId),
+  ];
   rows.sort((a, b) {
     final partA = byId[a.partId];
     final partB = byId[b.partId];

@@ -5,6 +5,7 @@ import '../data/seed.dart';
 import '../domain/dates.dart';
 import '../domain/replacement_csv.dart';
 import '../state/app_store.dart';
+import '../widgets/widgets.dart';
 
 class ImportReplacementsScreen extends StatefulWidget {
   const ImportReplacementsScreen({super.key, required this.store});
@@ -36,11 +37,30 @@ class _ImportReplacementsScreenState extends State<ImportReplacementsScreen> {
         final names = widget.store.parts
             .map((part) => part.registeredName)
             .toList();
+        final selected = widget.store.selectedGear;
+        final canManage = widget.store.canManageRecords;
+        final gearLabel = selected == null
+            ? '未選択'
+            : demoGearLabel(selected.name, demo: isDemoGearId(selected.id));
         return Scaffold(
-          appBar: AppBar(title: const Text('交換記録の CSV')),
+          appBar: AppBar(title: const Text('記録の CSV')),
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              Text(
+                gearLabel,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                canManage
+                    ? 'このギアの交換記録だけを出し入れします。他のギアの記録はそのままです。'
+                    : 'Strava から自転車を取って選ぶと、この画面が使えます。',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 16),
               Text('いまの登録名', style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: 4),
               Text(
@@ -50,7 +70,7 @@ class _ImportReplacementsScreenState extends State<ImportReplacementsScreen> {
               const Text('入力欄に出してコピーします。'),
               const SizedBox(height: 8),
               OutlinedButton(
-                onPressed: _export,
+                onPressed: canManage ? _export : null,
                 child: const Text('いまの記録を書き出す'),
               ),
               const SizedBox(height: 16),
@@ -58,6 +78,7 @@ class _ImportReplacementsScreenState extends State<ImportReplacementsScreen> {
               const SizedBox(height: 4),
               TextField(
                 controller: _csv,
+                enabled: canManage,
                 minLines: 8,
                 maxLines: 16,
                 decoration: const InputDecoration(
@@ -67,28 +88,33 @@ class _ImportReplacementsScreenState extends State<ImportReplacementsScreen> {
               ),
               const SizedBox(height: 8),
               OutlinedButton(
-                onPressed: () {
-                  setState(() {
-                    _csv.text = replacementCsvExample(
-                      defaultParts()
-                          .map((part) => part.registeredName)
-                          .toList(),
-                      startDate: widget.store.settings.lastSyncFrom,
-                    );
-                    _parsed = null;
-                    _plan = null;
-                    _message = null;
-                  });
-                },
+                onPressed: canManage
+                    ? () async {
+                        if (await _blockIfDemo()) {
+                          return;
+                        }
+                        setState(() {
+                          _csv.text = replacementCsvExample(
+                            defaultParts()
+                                .map((part) => part.registeredName)
+                                .toList(),
+                            startDate: widget.store.partOriginOn,
+                          );
+                          _parsed = null;
+                          _plan = null;
+                          _message = null;
+                        });
+                      }
+                    : null,
                 child: const Text('例を入れる'),
               ),
               const SizedBox(height: 8),
               const Text(
-                '部品は増えません。登録名（前タイヤ）で結びます。CSV に出た部品の記録は差し替えます。',
+                '部品は増えません。登録名（前タイヤ）で結びます。CSV に出た部品の、このギアの記録は差し替えます。',
               ),
               const SizedBox(height: 8),
               FilledButton(
-                onPressed: _preview,
+                onPressed: canManage ? _preview : null,
                 child: const Text('CSVを取り込み'),
               ),
               if (_errors.isNotEmpty) ...[
@@ -142,12 +168,14 @@ class _ImportReplacementsScreenState extends State<ImportReplacementsScreen> {
   }
 
   Future<void> _export() async {
+    final gearId = widget.store.settings.selectedGearId;
     final csv = exportReplacementCsv(
       parts: widget.store.parts,
       replacements: widget.store.replacements,
+      gearId: gearId,
     );
     final count = widget.store.replacements.where((item) {
-      return widget.store.partById(item.partId) != null;
+      return item.gearId == gearId && widget.store.partById(item.partId) != null;
     }).length;
     setState(() {
       _csv.text = csv;
@@ -160,10 +188,29 @@ class _ImportReplacementsScreenState extends State<ImportReplacementsScreen> {
     await Clipboard.setData(ClipboardData(text: csv));
   }
 
+  Future<bool> _blockIfDemo() async {
+    if (!widget.store.usingDemoRides) {
+      return false;
+    }
+    setState(() {
+      _parsed = null;
+      _plan = null;
+      _message = DemoRequiresSyncException.message;
+    });
+    if (mounted) {
+      await showDemoRequiresSyncDialog(context);
+    }
+    return true;
+  }
+
   void _preview() {
+    if (widget.store.usingDemoRides) {
+      _blockIfDemo();
+      return;
+    }
     final parsed = parseReplacementCsv(
       _csv.text,
-      startDate: widget.store.settings.lastSyncFrom,
+      startDate: widget.store.partOriginOn,
     );
     ReplacementImportPlan? plan;
     if (parsed.errors.isEmpty) {
@@ -180,6 +227,9 @@ class _ImportReplacementsScreenState extends State<ImportReplacementsScreen> {
   }
 
   Future<void> _import() async {
+    if (await _blockIfDemo()) {
+      return;
+    }
     final plan = _plan;
     if (plan == null || !plan.canImport) {
       return;
@@ -194,7 +244,7 @@ class _ImportReplacementsScreenState extends State<ImportReplacementsScreen> {
         parts: widget.store.parts,
       );
       _message =
-          '${result.added} 件取り込みました。CSV に出てきた登録名の以前の記録は置き換えました。'
+          '${result.added} 件取り込みました。このギアの、CSV に出てきた登録名の以前の記録は置き換えました。'
           '${result.skippedDuplicates == 0 ? '' : ' ${result.skippedDuplicates} 件は CSV 内の重複なので飛ばしました。'}';
     });
   }
