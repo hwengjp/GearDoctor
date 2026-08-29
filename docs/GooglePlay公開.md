@@ -36,7 +36,7 @@ Play に出すと、知らない人も入れられるようになります。少
 
    `https://hwengjp.github.io/GearDoctor/privacy-policy.html`
 
-   この URL を出す手順は、リポジトリの Settings → Pages → Build and deployment で Source を Deploy from a branch、Branch を `main` / `/docs` にします。日本向けなら本文は日本語のままでよいです。配信国を広げるときは、同じページに英語を足します。
+   この URL は、[Pages の設定](https://github.com/hwengjp/GearDoctor/settings/pages) で Source を Deploy from a branch、Branch を `main`、folder を `/docs` にすると開きます。日本向けなら本文は日本語のままでよいです。配信国を広げるときは、同じページに英語を足します。
 3. **審査で通る連携**  
    審査担当が「連携する」を押して、ブラウザからアプリに戻れる必要があります。いまの貼り付け手順だけでは落ちることがあります。
 
