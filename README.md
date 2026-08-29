@@ -41,4 +41,4 @@ flutter build apk
 
 ## ドキュメント
 
-詳細は [`docs/`](docs/) を参照してください。
+詳細は [`docs/`](docs/) を参照してください。プライバシーポリシーは [`docs/privacy-policy.html`](docs/privacy-policy.html) です。
