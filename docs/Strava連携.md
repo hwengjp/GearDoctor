@@ -100,7 +100,7 @@ WSL では、Linux 側から Chrome を開けないことがあります。Strav
 
 まだやらないこと:
 
-- Android 実機 / エミュレータでの OAuth（カスタム URL スキームが必要）
+- Android 実機での OAuth（カスタム URL スキームが必要）
 
 ## 制限（確認済み）
 
