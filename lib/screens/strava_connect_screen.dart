@@ -89,10 +89,6 @@ class _StravaConnectScreenState extends State<StravaConnectScreen> {
               ),
               if (athlete != null && athlete.isNotEmpty)
                 Text(athlete, style: Theme.of(context).textTheme.bodySmall),
-              Text(
-                '走行の取得はホームの同期ボタンから。',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
               const SizedBox(height: 12),
               Text('Client ID', style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: 4),
@@ -113,7 +109,7 @@ class _StravaConnectScreenState extends State<StravaConnectScreen> {
                 obscureText: true,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
-                  hintText: 'リポジトリには置かない',
+                  hintText: 'Strava のアプリ登録で Show すると出る値',
                 ),
               ),
               const SizedBox(height: 12),
@@ -125,7 +121,7 @@ class _StravaConnectScreenState extends State<StravaConnectScreen> {
                 const SizedBox(height: 12),
                 const Text(
                   'ブラウザで許可したあと、アプリに戻ります。'
-                  'WSL で戻らないときは、ブラウザのアドレス欄を下に貼ってください。',
+                  '戻らないときは、このあとに出る欄へブラウザのアドレス欄を貼ってください。',
                 ),
                 if (_authorizeUrl != null) ...[
                   const SizedBox(height: 8),
@@ -142,7 +138,7 @@ class _StravaConnectScreenState extends State<StravaConnectScreen> {
                       if (mounted) {
                         setState(
                           () => _message =
-                              '許可用の URL をコピーしました。PC の Chrome に貼って開いてください。',
+                              '許可用の URL をコピーしました。スマホのブラウザで開いてください。',
                         );
                       }
                     },
@@ -206,7 +202,7 @@ class _StravaConnectScreenState extends State<StravaConnectScreen> {
                 ),
               ),
               Text(
-                'ページに出る Access Token は使わない。毎回入れたくないときは、リポジトリ直下の strava_secrets.json に置く。',
+                'このアプリでは Access Token は使いません。',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 12),
@@ -217,7 +213,7 @@ class _StravaConnectScreenState extends State<StravaConnectScreen> {
                 ),
               ),
               Text(
-                '成功すると「連携済み」と自分の名前が出ます。走行の取得はホームの「Strava を同期」から。',
+                '成功すると「連携済み」と自分の名前が出ます。走行の取得はホームの「Strava同期」から。',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 12),
@@ -228,8 +224,8 @@ class _StravaConnectScreenState extends State<StravaConnectScreen> {
                 ),
               ),
               Text(
-                '「許可用 URL をコピー」を PC の Chrome のアドレス欄に貼る。'
-                '許可したあとのアドレス欄（code= を含む）を上に貼って「貼ったコードで続ける」。',
+                '「連携する」を押したあとに出る欄へ、スマホのブラウザのアドレス欄（code= を含む）を貼り、「貼ったコードで続ける」。'
+                'ブラウザが開かないときは「許可用 URL をコピー」して、スマホのブラウザで開く。',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -274,7 +270,7 @@ class _StravaConnectScreenState extends State<StravaConnectScreen> {
       setState(() {
         _message = opened
             ? 'ブラウザで Strava の許可を待っています…'
-            : 'ブラウザを自動では開けませんでした。下の「許可用 URL をコピー」を PC の Chrome に貼って開いてください。';
+            : 'ブラウザを自動では開けませんでした。下の「許可用 URL をコピー」をスマホのブラウザで開いてください。';
       });
     }
     try {

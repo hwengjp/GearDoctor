@@ -581,7 +581,7 @@ function HomeScreen({
           ))}
         </div>
         <div style={{ flexShrink: 0 }}>
-          <PhoneButton label="Strava を同期" variant="primary" onClick={() => go("sync")} />
+          <PhoneButton label="Strava同期" variant="primary" onClick={() => go("sync")} />
         </div>
       </div>
     </Phone>
@@ -826,7 +826,7 @@ function AddScreen({
             placeholder="登録名（前タイヤ、心拍計電池など）"
           />
           <Text size="small" tone="tertiary">
-            内部の管理はこの登録名。F/R の種別は付けない。まとめは表示のまとめだけ
+            ホームに出す名前。前と後ろは別々に登録します。
           </Text>
         </Stack>
         <Stack gap={6}>
@@ -834,7 +834,7 @@ function AddScreen({
             交換周期
           </Text>
           <Text size="small" tone="tertiary">
-            距離か月、どちらか一方。両方は使わない
+            距離か月のどちらか。
           </Text>
           <div style={{ display: "flex", gap: 8 }}>
             <div
@@ -889,7 +889,7 @@ function AddScreen({
               推奨  {recommended.toLocaleString()} {unit}
             </Text>
             <Text size="small" tone="tertiary">
-              部品の種類から自動計算。数値は変えられない
+              名前から自動で決まります。
             </Text>
           </div>
           <div
@@ -906,7 +906,7 @@ function AddScreen({
               前回交換周期から計算  4,800 {unit}
             </Text>
             <Text size="small" tone="tertiary">
-              交換が2回以上なら直近とその一つ前。1回なら開始日から。毎回計算
+              直近の2回の間隔。毎回計算
             </Text>
           </div>
           <div
@@ -923,7 +923,7 @@ function AddScreen({
               設定  {custom.toLocaleString()} {unit}
             </Text>
             <Text size="small" tone="tertiary">
-              自分で入力する。推奨と前回周期は残る
+              自分で入力します。
             </Text>
           </div>
         </Stack>
@@ -967,7 +967,7 @@ function SplitMergeScreen({ go }: { go: (screen: ScreenId) => void }) {
     <Phone title="表示のまとめ" onBack={() => go("settings")}>
       <Stack gap={14}>
         <Text size="small" tone="tertiary">
-          内部は登録名のまま。まとめた名前は表示専用。差ができても合わせない
+          ホームでは1行にまとめます。部品そのものは分かれています。
         </Text>
         <div style={{ display: "flex", gap: 8 }}>
           <div
@@ -1089,9 +1089,7 @@ function ImportCsvScreen({ go }: { go: (screen: ScreenId) => void }) {
   return (
     <Phone title="交換記録の CSV" onBack={() => go("settings")}>
       <Stack gap={14}>
-        <Text>
-          書き出しと取り込みは同じ形式です。部品は作りません。まとめ表示の名前ではなく登録名を使います。交換日が空の行は開始日になります。CSV に出てきた登録名は、いまの交換記録を消して差し替えます。
-        </Text>
+        <Text>入力欄に出してコピーします。</Text>
         <PhoneButton label="いまの記録を書き出す" variant="ghost" onClick={() => go("import-csv")} />
         <Text size="small" tone="secondary">
           いまの登録名
@@ -1111,7 +1109,8 @@ function ImportCsvScreen({ go }: { go: (screen: ScreenId) => void }) {
           {"\n"}
           …
         </Text>
-        <PhoneButton label="内容を確認" variant="primary" onClick={() => go("import-csv")} />
+        <Text>部品は増えません。登録名（前タイヤ）で結びます。CSV に出た部品の記録は差し替えます。</Text>
+        <PhoneButton label="CSVを取り込み" variant="primary" onClick={() => go("import-csv")} />
         <Text size="small" tone="secondary">
           差し替え 1 件
         </Text>
@@ -1123,7 +1122,6 @@ function ImportCsvScreen({ go }: { go: (screen: ScreenId) => void }) {
 }
 
 function SyncScreen({ go }: { go: (screen: ScreenId) => void }) {
-  const t = useHostTheme();
   return (
     <Phone title="Strava 同期" onBack={() => go("home")}>
       <Stack gap={14}>
@@ -1134,28 +1132,14 @@ function SyncScreen({ go }: { go: (screen: ScreenId) => void }) {
           <Text weight="semibold">開始日  2025-07-17（デモ）</Text>
           <Text weight="semibold">何日まで  2026-07-15（デモ）</Text>
           <Text size="small" tone="tertiary">
-            何日まではいちばん新しい走行の日。同期した日ではない
+            何日までは、開始日以降で入っているいちばん新しい走行の日です。
           </Text>
         </Stack>
-        <Text>
-          起動やバックグラウンドでは取りに行きません。期間を選んでから取得します。
-        </Text>
-        <div
-          style={{
-            padding: 10,
-            borderRadius: 8,
-            background: t.fill.secondary,
-            border: `1px solid ${t.stroke.secondary}`,
-          }}
-        >
-          <Text size="small">
-            開始日を変えると走行データを消します。期間ボタンで Strava から走行を足します。
-          </Text>
-        </div>
-        <PhoneButton label="前回から 1 か月" variant="primary" onClick={() => go("home")} />
-        <PhoneButton label="前回から 3 か月" variant="ghost" onClick={() => go("home")} />
+        <Text>期間を選んで取得します。自動では取りに行きません。</Text>
+        <PhoneButton label="前回から 3 か月" variant="primary" onClick={() => go("home")} />
         <PhoneButton label="前回から 6 か月" variant="ghost" onClick={() => go("home")} />
         <PhoneButton label="前回から 1 年" variant="ghost" onClick={() => go("home")} />
+        <div style={{ height: 16 }} />
         <PhoneButton label="開始日を変更" variant="ghost" onClick={() => go("home")} />
       </Stack>
     </Phone>
@@ -1168,9 +1152,6 @@ function StravaConnectScreen({ go }: { go: (screen: ScreenId) => void }) {
       <Stack gap={14}>
         <Stack gap={4}>
           <Text weight="semibold">未連携</Text>
-          <Text size="small" tone="secondary">
-            走行の取得はホームの同期ボタンから。
-          </Text>
         </Stack>
         <Stack gap={4}>
           <Text size="small" tone="secondary">
@@ -1182,7 +1163,7 @@ function StravaConnectScreen({ go }: { go: (screen: ScreenId) => void }) {
           <Text size="small" tone="secondary">
             Client Secret
           </Text>
-          <TextInput value="" onChange={() => undefined} placeholder="リポジトリには置かない" />
+          <TextInput value="" onChange={() => undefined} placeholder="Strava のアプリ登録で Show すると出る値" />
         </Stack>
         <PhoneButton label="連携する" variant="primary" onClick={() => go("strava")} />
         <PhoneButton label="連携を解除" variant="ghost" onClick={() => go("strava")} />
@@ -1190,9 +1171,9 @@ function StravaConnectScreen({ go }: { go: (screen: ScreenId) => void }) {
           <Text weight="semibold">連携方法</Text>
           <Text size="small">1. Strava の API 設定でアプリを作る（strava.com/settings/api）</Text>
           <Text size="small">2. Authorization Callback Domain は 127.0.0.1</Text>
-          <Text size="small">3. Client ID と Client Secret を上に入れる</Text>
+          <Text size="small">3. Client ID と Client Secret を上に入れる。このアプリでは Access Token は使いません。</Text>
           <Text size="small">4. 「連携する」を押し、ブラウザで許可する</Text>
-          <Text size="small">5. 戻らないときはアドレス欄（code=）を貼る</Text>
+          <Text size="small">5. 戻らないときは、「連携する」のあとに出る欄へアドレス欄（code=）を貼る</Text>
         </Stack>
       </Stack>
     </Phone>
@@ -1218,7 +1199,7 @@ function SettingsScreen({
           </Text>
           <Text weight="semibold">連携済み</Text>
           <Text size="small" tone="secondary">
-            走行の取得はホームの同期ボタンから。連携方法は次の画面。
+            連携すると走行を取れます。手順は次の画面。
           </Text>
         </Stack>
         <PhoneButton label="Strava 連携" variant="primary" onClick={() => go("strava")} />
@@ -1227,7 +1208,7 @@ function SettingsScreen({
             ギア
           </Text>
           <Text size="small" tone="tertiary">
-            同期した Strava の自転車から選ぶ。距離はこのギアの走行だけを集計する
+            距離を足す自転車を1台選ぶ。
           </Text>
           {GEARS.map((name) => {
             const selected = name === gear;
@@ -1414,7 +1395,7 @@ export default function GearDoctorUiWireframe() {
               ["詳細", "距離 → バー → 交換日 → 操作 → 過去の交換記録", "交換した | 編集"],
               ["記録を編集", "日付 → メモ → 保存 → 削除", "なし（縦のみ）"],
               ["部品を追加", "登録名 → 周期 → 目安 → しきい値", "距離 | 月"],
-              ["交換記録の CSV", "書き出し → 貼り付け → 確認 → 取り込み", "なし（縦のみ）"],
+              ["交換記録の CSV", "書き出し → 貼り付け → CSVを取り込み", "なし（縦のみ）"],
               ["表示のまとめ", "2件選択 → どちらがF → 表示名", "なし（縦のみ）"],
               ["同期", "開始日と何日まで → 期間の選択 → 取得", "なし（縦のみ）"],
               ["設定", "Strava 連携へ → ギア → 部品を追加 → 初期化", "なし（縦のみ）"],
@@ -1434,12 +1415,12 @@ export default function GearDoctorUiWireframe() {
 
           <H3>交換目安</H3>
           <Callout tone="info" title="推奨・前回周期・設定">
-            三つの数値を見せ、選んだ一方を使う。前回周期は毎回計算。2回以上なら直近とその一つ前のあいだ。1回だけなら開始日からその交換まで。
+            三つの数値を見せ、選んだ一方を使う。前回周期は直近の2回の間隔。毎回計算。
           </Callout>
 
           <H3>同期画面は未確定</H3>
           <Callout tone="warning" title="別途相談">
-            期間は 1か月・3か月・6か月・1年・開始日。失敗時の続きはまだ決めません。ギアは設定で選びます。
+            期間は 3か月・6か月・1年・開始日。失敗時の続きはまだ決めません。ギアは設定で選びます。
           </Callout>
 
           <Card>

@@ -41,16 +41,14 @@ class _ImportReplacementsScreenState extends State<ImportReplacementsScreen> {
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const Text(
-                '書き出しと取り込みは同じ形式です。部品は作りません。まとめ表示の名前（タイヤ）ではなく、登録名（前タイヤ）を使います。交換日が空の行は開始日になります。CSV に出てくる登録名は、いまの交換記録を消して差し替えます。',
-              ),
-              const SizedBox(height: 12),
               Text('いまの登録名', style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: 4),
               Text(
                 names.isEmpty ? '先に部品を追加してください。' : names.join('、'),
               ),
               const SizedBox(height: 16),
+              const Text('入力欄に出してコピーします。'),
+              const SizedBox(height: 8),
               OutlinedButton(
                 onPressed: _export,
                 child: const Text('いまの記録を書き出す'),
@@ -85,9 +83,13 @@ class _ImportReplacementsScreenState extends State<ImportReplacementsScreen> {
                 child: const Text('例を入れる'),
               ),
               const SizedBox(height: 8),
+              const Text(
+                '部品は増えません。登録名（前タイヤ）で結びます。CSV に出た部品の記録は差し替えます。',
+              ),
+              const SizedBox(height: 8),
               FilledButton(
                 onPressed: _preview,
-                child: const Text('内容を確認'),
+                child: const Text('CSVを取り込み'),
               ),
               if (_errors.isNotEmpty) ...[
                 const SizedBox(height: 16),

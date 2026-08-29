@@ -129,7 +129,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                       );
                     },
-                    child: const Text('Strava を同期'),
+                    child: const Text('Strava同期'),
                   ),
                 ),
               ),

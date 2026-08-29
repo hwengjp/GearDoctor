@@ -94,7 +94,7 @@ class _EditPartScreenState extends State<EditPartScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '内部の管理はこの登録名。F/R の種別は付けない。まとめは表示のまとめだけ',
+            'ホームに出す名前。前と後ろは別々に登録します。',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           if (_isNew) ...[
@@ -110,7 +110,7 @@ class _EditPartScreenState extends State<EditPartScreen> {
           Text('交換周期', style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 4),
           Text(
-            '距離か月、どちらか一方。両方は使わない',
+            '距離か月のどちらか。',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 8),
@@ -139,7 +139,7 @@ class _EditPartScreenState extends State<EditPartScreen> {
           SelectTile(
             selected: _mode == LimitMode.recommended,
             title: '推奨  ${formatAmount(_recommended)} $unit',
-            subtitle: '部品の名前から自動計算。数値は変えられない',
+            subtitle: '名前から自動で決まります。',
             onTap: () => setState(() => _mode = LimitMode.recommended),
           ),
           const SizedBox(height: 8),
@@ -148,16 +148,14 @@ class _EditPartScreenState extends State<EditPartScreen> {
             title: previous == null
                 ? '前回交換周期から計算  —'
                 : '前回交換周期から計算  ${formatAmount(previous)} $unit',
-            subtitle: previous == null
-                ? '交換が2回以上なら直近とその一つ前のあいだ。1回だけなら開始日から。毎回計算'
-                : '直近の交換とその一つ前のあいだの$_usageNoun。毎回計算',
+            subtitle: '直近の2回の間隔。毎回計算',
             onTap: () => setState(() => _mode = LimitMode.previousCycle),
           ),
           const SizedBox(height: 8),
           SelectTile(
             selected: _mode == LimitMode.custom,
             title: '設定  ${_custom.text.isEmpty ? '—' : _custom.text} $unit',
-            subtitle: '自分で入力する。推奨と前回周期は残る',
+            subtitle: '自分で入力します。',
             onTap: () => setState(() => _mode = LimitMode.custom),
           ),
           if (_mode == LimitMode.custom) ...[
@@ -199,9 +197,6 @@ class _EditPartScreenState extends State<EditPartScreen> {
       ),
     );
   }
-
-  String get _usageNoun =>
-      _cycle == CycleKind.months ? '経過月' : '走行距離';
 
   void _setCycle(CycleKind cycle) {
     setState(() {

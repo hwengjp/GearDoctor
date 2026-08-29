@@ -46,31 +46,13 @@ class _SyncScreenState extends State<SyncScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                '何日までは、開始日以降で入っているいちばん新しい走行の日です。同期した日ではありません。',
+                '何日までは、開始日以降で入っているいちばん新しい走行の日です。',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 12),
-              const Text(
-                '起動やバックグラウンドでは取りに行きません。期間を選んでから取得します。',
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.secondaryContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  '開始日から何日まで、抜けなく取れている必要があります。開始日を変えると走行データを消して取り直します。期間ボタンは、いま取り終えた日（まだなければ開始日）から先を足します。',
-                ),
-              ),
+              const Text('期間を選んで取得します。自動では取りに行きません。'),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: _busy ? null : () => _syncForward(months: 1),
-                child: const Text('前回から 1 か月'),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton(
                 onPressed: _busy ? null : () => _syncForward(months: 3),
                 child: const Text('前回から 3 か月'),
               ),
@@ -84,7 +66,7 @@ class _SyncScreenState extends State<SyncScreen> {
                 onPressed: _busy ? null : () => _syncForward(months: 12),
                 child: const Text('前回から 1 年'),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 32),
               OutlinedButton(
                 onPressed: _busy ? null : _changeStartDate,
                 child: Text(hasStart ? '開始日を変更' : '開始日を指定'),

@@ -38,7 +38,7 @@ class _DisplayGroupScreenState extends State<DisplayGroupScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               Text(
-                '内部は登録名のまま。まとめた名前は表示専用。差ができても合わせない',
+                'ホームでは1行にまとめます。部品そのものは分かれています。',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 12),

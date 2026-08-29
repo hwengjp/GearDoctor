@@ -41,7 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (athlete != null && athlete.isNotEmpty)
                 Text(athlete, style: Theme.of(context).textTheme.bodySmall),
               Text(
-                '走行の取得はホームの同期ボタンから。連携方法は次の画面。',
+                '連携すると走行を取れます。手順は次の画面。',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 8),
@@ -58,7 +58,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 16),
               Text('ギア', style: Theme.of(context).textTheme.bodySmall),
               Text(
-                '同期した Strava の自転車から選ぶ。距離はこのギアの走行だけを集計する',
+                '距離を足す自転車を1台選ぶ。',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 8),

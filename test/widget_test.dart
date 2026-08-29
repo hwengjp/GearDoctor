@@ -44,14 +44,14 @@ void main() {
     );
     expect(find.text('タイヤ'), findsOneWidget);
     expect(find.text('チェーン'), findsOneWidget);
-    expect(find.text('Strava を同期'), findsOneWidget);
+    expect(find.text('Strava同期'), findsOneWidget);
     expect(find.textContaining('ギア: Aeroad（デモ）'), findsOneWidget);
     expect(
       find.textContaining('最終同期 2025-07-17〜2026-07-15（デモ）'),
       findsOneWidget,
     );
 
-    await tester.tap(find.text('Strava を同期'));
+    await tester.tap(find.text('Strava同期'));
     await tester.pumpAndSettle();
     expect(find.textContaining('開始日  2025-07-17（デモ）'), findsOneWidget);
     expect(find.textContaining('何日まで  2026-07-15（デモ）'), findsOneWidget);
@@ -128,5 +128,7 @@ void main() {
     expect(find.text('連携を解除'), findsOneWidget);
     expect(find.text('連携方法'), findsOneWidget);
     expect(find.textContaining('Authorization Callback Domain は 127.0.0.1'), findsOneWidget);
+    expect(find.textContaining('このアプリでは Access Token は使いません'), findsOneWidget);
+    expect(find.textContaining('「連携する」を押したあとに出る欄'), findsOneWidget);
   });
 }
